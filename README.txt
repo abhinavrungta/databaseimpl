@@ -13,3 +13,9 @@ TPCH Data
 5. edit makefile to specify the 'Machine' and 'Database' 
 6. run - make (to generate binary)
 7. run ./dbgen -s 0.01 (to generate .tbl files in DSS_PATH location with scale factor 0.01)
+
+
+GTEST
+1. Add tests in test folder
+2. In each test file, add the header file of the functions to be tested. So try to keep all function declaration in header files.
+
