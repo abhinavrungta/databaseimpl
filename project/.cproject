@@ -18,7 +18,7 @@
 					<folderInfo id="cdt.managedbuild.config.gnu.macosx.exe.debug.951732902." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.macosx.exe.debug.775840282" name="MacOSX GCC" superClass="cdt.managedbuild.toolchain.gnu.macosx.exe.debug">
 							<targetPlatform id="cdt.managedbuild.target.gnu.platform.macosx.exe.debug.1739975705" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.macosx.exe.debug"/>
-							<builder buildPath="${workspace_loc:/DBImpl}/Debug" id="cdt.managedbuild.target.gnu.builder.macosx.exe.debug.1655846080" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.macosx.exe.debug"/>
+							<builder buildPath="${workspace_loc:/DBImpl}/Debug" id="cdt.managedbuild.target.gnu.builder.macosx.exe.debug.1655846080" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.macosx.exe.debug"/>
 							<tool id="cdt.managedbuild.tool.macosx.c.linker.macosx.exe.debug.630858819" name="MacOS X C Linker" superClass="cdt.managedbuild.tool.macosx.c.linker.macosx.exe.debug"/>
 							<tool id="cdt.managedbuild.tool.macosx.cpp.linker.macosx.exe.debug.812741324" name="MacOS X C++ Linker" superClass="cdt.managedbuild.tool.macosx.cpp.linker.macosx.exe.debug">
 								<inputType id="cdt.managedbuild.tool.macosx.cpp.linker.input.34008497" superClass="cdt.managedbuild.tool.macosx.cpp.linker.input">
@@ -101,6 +101,21 @@
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="DBImpl.cdt.managedbuild.target.macosx.exe.780251427" name="Executable" projectType="cdt.managedbuild.target.macosx.exe"/>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="TEST">
+			<resource resourceType="PROJECT" workspacePath="/DBImpl"/>
+		</configuration>
+		<configuration configurationName="Release">
+			<resource resourceType="PROJECT" workspacePath="/DBImpl"/>
+		</configuration>
+		<configuration configurationName="RunTest">
+			<resource resourceType="PROJECT" workspacePath="/DBImpl"/>
+		</configuration>
+		<configuration configurationName="Debug">
+			<resource resourceType="PROJECT" workspacePath="/DBImpl"/>
+		</configuration>
+	</storageModule>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.macosx.exe.debug.951732902;cdt.managedbuild.config.gnu.macosx.exe.debug.951732902.;cdt.managedbuild.tool.gnu.cpp.compiler.macosx.exe.debug.997512206;cdt.managedbuild.tool.gnu.cpp.compiler.input.943481457">
@@ -109,12 +124,38 @@
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.macosx.exe.debug.951732902;cdt.managedbuild.config.gnu.macosx.exe.debug.951732902.;cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.1255064034;cdt.managedbuild.tool.gnu.c.compiler.input.838153436">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.macosx.exe.debug.951732902.497986765;cdt.managedbuild.config.gnu.macosx.exe.debug.951732902.497986765.;cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.292336785;cdt.managedbuild.tool.gnu.c.compiler.input.1282754036">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.macosx.exe.release.852079460;cdt.managedbuild.config.macosx.exe.release.852079460.;cdt.managedbuild.tool.gnu.cpp.compiler.macosx.exe.release.1214388377;cdt.managedbuild.tool.gnu.cpp.compiler.input.162782146">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.macosx.exe.debug.951732902.497986765;cdt.managedbuild.config.gnu.macosx.exe.debug.951732902.497986765.;cdt.managedbuild.tool.gnu.cpp.compiler.macosx.exe.debug.163480663;cdt.managedbuild.tool.gnu.cpp.compiler.input.2061425993">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.macosx.exe.release.852079460;cdt.managedbuild.config.macosx.exe.release.852079460.;cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.release.249426900;cdt.managedbuild.tool.gnu.c.compiler.input.1204603587">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 	</storageModule>
-	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets">
+		<buildTargets>
+			<target name="all" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+				<buildCommand>make</buildCommand>
+				<buildArguments/>
+				<buildTarget>all</buildTarget>
+				<stopOnError>true</stopOnError>
+				<useDefaultCommand>true</useDefaultCommand>
+				<runAllBuilders>true</runAllBuilders>
+			</target>
+			<target name="clean" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+				<buildCommand>make</buildCommand>
+				<buildArguments/>
+				<buildTarget>clean</buildTarget>
+				<stopOnError>true</stopOnError>
+				<useDefaultCommand>true</useDefaultCommand>
+				<runAllBuilders>true</runAllBuilders>
+			</target>
+		</buildTargets>
+	</storageModule>
 </cproject>
