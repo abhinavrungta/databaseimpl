@@ -18,4 +18,10 @@ TPCH Data
 GTEST
 1. Add tests in test folder
 2. In each test file, add the header file of the functions to be tested. So try to keep all function declaration in header files.
+3. Run make in /test folder.
+4. run ./test to execute tests
+
+Main
+1. run make in /src folder
+2. run ./main to execute program.
 
