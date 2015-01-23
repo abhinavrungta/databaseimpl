@@ -42,11 +42,20 @@ gtest-all.o : $(FUSED_GTEST_H) $(FUSED_GTEST_ALL_CC)
 gtest_main.o : $(FUSED_GTEST_H) $(GTEST_MAIN_CC)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(GTEST_MAIN_CC)
 
-sample1.o : $(SRC_DIR)/sample1.cc
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/sample1.cc
+SOURCES=TwoWayList.cc sample1.cc
+TESTS=sample1_unittest.cc
+OBJECTS=$(SOURCES:.cc=.o)
+OBJECTS_TESTS=$(TESTS:.cc=.o)
 
-sample1_unittest.o : sample1_unittest.cc $(FUSED_GTEST_H)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c sample1_unittest.cc
+src.o :
+	for dir in $(SOURCES); do \
+		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/$$dir; \
+	done
 
-test : sample1.o sample1_unittest.o gtest-all.o gtest_main.o
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@
+unittest.o :
+	for dir in $(TESTS); do \
+		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $$dir; \
+	done
+
+test : src.o unittest.o gtest-all.o gtest_main.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(OBJECTS) $(OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@

@@ -26,19 +26,15 @@ GTEST_MAIN_CC = $(FUSED_GTEST_DIR)/gtest/gtest_main.cc
 CPPFLAGS += -I$(FUSED_GTEST_DIR) -DGTEST_HAS_PTHREAD=0
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g -c -Wall
-CC=g++
-LDFLAGS=
+CXXFLAGS += -g
 
-SOURCES=$(SRC_DIR)/$(wildcard *.cc)
+all : test
 
-OBJECTS=$(SOURCES:.cc=.o)
+check : all
+	./test
 
-TESTS=./$(wildcard *.cc)
-
-OBJECTS_TESTS=$(TESTS:.cc=.o)
-
-EXECUTABLE=test
+clean :
+	rm -rf test *.o
 
 gtest-all.o : $(FUSED_GTEST_H) $(FUSED_GTEST_ALL_CC)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(FUSED_GTEST_DIR)/gtest/gtest-all.cc
@@ -46,17 +42,11 @@ gtest-all.o : $(FUSED_GTEST_H) $(FUSED_GTEST_ALL_CC)
 gtest_main.o : $(FUSED_GTEST_H) $(GTEST_MAIN_CC)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(GTEST_MAIN_CC)
 
-all: $(SOURCES) $(TESTS) $(EXECUTABLE)
-	
-$(EXECUTABLE): $(OBJECTS) $(OBJECTS_TESTS) 
-	$(CC) $(LDFLAGS) $(OBJECTS) $(OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
+sample1.o : $(SRC_DIR)/sample1.cc
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(SRC_DIR)/sample1.cc
 
-.cc.o:
-	$(CC) $(CFLAGS) $< -o $@
+sample1_unittest.o : sample1_unittest.cc $(FUSED_GTEST_H)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c sample1_unittest.cc
 
-check : all
-	./$(EXECUTABLE)
-
-clean :
-	rm -rf $(FUSED_GTEST_DIR) sample1_unittest *.o
-
+test : sample1.o sample1_unittest.o gtest-all.o gtest_main.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ -o $@
