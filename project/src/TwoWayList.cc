@@ -8,14 +8,12 @@
 
 using namespace std;
 
-
 // create an alias of the given TwoWayList
-template <class Type>
-TwoWayList <Type> :: TwoWayList (TwoWayList &me) {
+template<class Type>
+TwoWayList<Type>::TwoWayList(TwoWayList &me) {
 
 	list = new (std::nothrow) Header;
-	if (list == NULL)
-	{
+	if (list == NULL) {
 		cout << "ERROR : Not enough memory. EXIT !!!\n";
 		exit(1);
 	}
@@ -28,29 +26,25 @@ TwoWayList <Type> :: TwoWayList (TwoWayList &me) {
 }
 
 // basic constructor function
-template <class Type>
-TwoWayList <Type> :: TwoWayList ()
-{
+template<class Type>
+TwoWayList<Type>::TwoWayList() {
 
 	// allocate space for the header
 	list = new (std::nothrow) Header;
-	if (list == NULL)
-	{
+	if (list == NULL) {
 		cout << "ERROR : Not enough memory. EXIT !!!\n";
 		exit(1);
 	}
-	
+
 	// set up the initial values for an empty list
 	list->first = new (std::nothrow) Node;
-	if (list->first == NULL)
-	{
+	if (list->first == NULL) {
 		cout << "ERROR : Not enough memory. EXIT !!!\n";
 		exit(1);
 	}
 
 	list->last = new (std::nothrow) Node;
-	if (list->last == NULL)
-	{
+	if (list->last == NULL) {
 		cout << "ERROR : Not enough memory. EXIT !!!\n";
 		exit(1);
 	}
@@ -64,45 +58,40 @@ TwoWayList <Type> :: TwoWayList ()
 }
 
 // basic deconstructor function
-template <class Type>
-TwoWayList <Type> :: ~TwoWayList ()
-{
+template<class Type>
+TwoWayList<Type>::~TwoWayList() {
 
 	// remove everything
-	MoveToStart ();
-	while (RightLength ()>0) {
+	MoveToStart();
+	while (RightLength() > 0) {
 		Type temp;
-		Remove (&temp);
+		Remove(&temp);
 	}
 
 	// kill all the nodes
 	for (int i = 0; i <= list->leftSize + list->rightSize; i++) {
 		list->first = list->first->next;
 		delete list->first->previous;
-	} 
+	}
 	delete list->first;
-	
+
 	// kill the header
 	delete list;
 
 }
 
 // swap operator
-template <class Type> void
-TwoWayList <Type> :: operator &= (TwoWayList & List)
-{
+template<class Type> void TwoWayList<Type>::operator &=(TwoWayList & List) {
 
 	Header *temp = List.list;
 	List.list = list;
 	list = temp;
-	
+
 }
 
 // make the first node the current node
-template <class Type> void
-TwoWayList <Type> :: MoveToStart ()
-{
-	
+template<class Type> void TwoWayList<Type>::MoveToStart() {
+
 	list->current = list->first;
 	list->rightSize += list->leftSize;
 	list->leftSize = 0;
@@ -110,10 +99,8 @@ TwoWayList <Type> :: MoveToStart ()
 }
 
 // make the first node the current node
-template <class Type> void
-TwoWayList <Type> :: MoveToFinish ()
-{
-	
+template<class Type> void TwoWayList<Type>::MoveToFinish() {
+
 	list->current = list->last->previous;
 	list->leftSize += list->rightSize;
 	list->rightSize = 0;
@@ -121,24 +108,18 @@ TwoWayList <Type> :: MoveToFinish ()
 }
 
 // determine the number of items to the left of the current node
-template <class Type> int 
-TwoWayList <Type> :: LeftLength ()
-{
+template<class Type> int TwoWayList<Type>::LeftLength() {
 	return (list->leftSize);
 }
 
 // determine the number of items to the right of the current node
-template <class Type> int 
-TwoWayList <Type> :: RightLength ()
-{
+template<class Type> int TwoWayList<Type>::RightLength() {
 	return (list->rightSize);
 }
 
 // swap the right sides of two lists
-template <class Type> void 
-TwoWayList <Type> :: SwapRights (TwoWayList & List)
-{
-	
+template<class Type> void TwoWayList<Type>::SwapRights(TwoWayList & List) {
+
 	// swap out everything after the current nodes
 	Node *left_1 = list->current;
 	Node *right_1 = list->current->next;
@@ -149,11 +130,11 @@ TwoWayList <Type> :: SwapRights (TwoWayList & List)
 	right_2->previous = left_1;
 	left_2->next = right_1;
 	right_1->previous = left_2;
-	
+
 	// set the new endpoints
 	Node *temp = list->last;
-	list->last = List.list->last;	
-	List.list->last = temp;	
+	list->last = List.list->last;
+	List.list->last = temp;
 
 	int tempint = List.list->rightSize;
 	List.list->rightSize = list->rightSize;
@@ -162,10 +143,8 @@ TwoWayList <Type> :: SwapRights (TwoWayList & List)
 }
 
 // swap the leftt sides of the two lists
-template <class Type> void 
-TwoWayList <Type> :: SwapLefts (TwoWayList & List)
-{
-	
+template<class Type> void TwoWayList<Type>::SwapLefts(TwoWayList & List) {
+
 	// swap out everything after the current nodes
 	Node *left_1 = list->current;
 	Node *right_1 = list->current->next;
@@ -179,13 +158,13 @@ TwoWayList <Type> :: SwapLefts (TwoWayList & List)
 
 	// set the new frontpoints
 	Node *temp = list->first;
-	list->first = List.list->first;	
-	List.list->first = temp;	
+	list->first = List.list->first;
+	List.list->first = temp;
 
 	// set the new current nodes
 	temp = list->current;
-	list->current = List.list->current;	
-	List.list->current = temp;	
+	list->current = List.list->current;
+	List.list->current = temp;
 
 	int tempint = List.list->leftSize;
 	List.list->leftSize = list->leftSize;
@@ -193,9 +172,7 @@ TwoWayList <Type> :: SwapLefts (TwoWayList & List)
 }
 
 // move forwards through the list 
-template <class Type> void 
-TwoWayList <Type> :: Advance ()
-{
+template<class Type> void TwoWayList<Type>::Advance() {
 
 	(list->rightSize)--;
 	(list->leftSize)++;
@@ -204,9 +181,7 @@ TwoWayList <Type> :: Advance ()
 }
 
 // move backwards through the list
-template <class Type> void 
-TwoWayList <Type> :: Retreat ()
-{
+template<class Type> void TwoWayList<Type>::Retreat() {
 
 	(list->rightSize)++;
 	(list->leftSize)--;
@@ -215,13 +190,10 @@ TwoWayList <Type> :: Retreat ()
 }
 
 // insert an item at the current poition
-template <class Type> void
-TwoWayList <Type> :: Insert (Type *Item)
-{
+template<class Type> void TwoWayList<Type>::Insert(Type *Item) {
 
 	Node *temp = new (std::nothrow) Node;
-	if (temp == NULL)
-	{
+	if (temp == NULL) {
 		cout << "ERROR : Not enough memory. EXIT !!!\n";
 		exit(1);
 	}
@@ -233,24 +205,22 @@ TwoWayList <Type> :: Insert (Type *Item)
 	temp->previous = left;
 	temp->next = right;
 	temp->data = new (std::nothrow) Type;
-	if (temp->data == NULL)
-	{
+	if (temp->data == NULL) {
 		cout << "ERROR : Not enough memory. EXIT !!!\n";
 		exit(1);
 	}
 
 	right->previous = temp;
 
-	temp->data->Consume (Item);
+	temp->data->Consume(Item);
 
 	list->rightSize += 1;
 
 }
 
 // get a reference to the currentitemin the list
-template <class Type> Type* 
-TwoWayList <Type> ::  Current (int offset)
-{
+template<class Type> Type*
+TwoWayList<Type>::Current(int offset) {
 	Node *temp = list->current->next;
 	for (int i = 0; i < offset; i++) {
 		temp = temp->next;
@@ -259,20 +229,18 @@ TwoWayList <Type> ::  Current (int offset)
 }
 
 // remove an item from the current poition
-template <class Type> void
-TwoWayList <Type> :: Remove (Type *Item)
-{
+template<class Type> void TwoWayList<Type>::Remove(Type *Item) {
 
 	Node *temp = list->current->next;
 	list->current->next = temp->next;
 	temp->next->previous = list->current;
-	
+
 	Item->Consume(temp->data);
 
 	delete temp;
 
 	(list->rightSize)--;
-}	
+}
 
 #endif
-	
+

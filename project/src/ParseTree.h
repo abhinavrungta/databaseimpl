@@ -1,4 +1,3 @@
-
 // these are the different types of operators that can appear
 // in a CNF expression
 #define LESS_THAN 1
@@ -28,7 +27,7 @@ struct ComparisonOp {
 
 	// these are the operands on the left and on the right
 	struct Operand *left;
-	struct Operand *right;	
+	struct Operand *right;
 };
 
 struct OrList {
@@ -51,6 +50,4 @@ struct AndList {
 	struct AndList *rightAnd;
 
 };
-
-
 

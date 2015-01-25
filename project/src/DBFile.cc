@@ -9,30 +9,30 @@
 
 // stub file .. replace it with your own DBFile.cc
 
-DBFile::DBFile () {
+DBFile::DBFile() {
 
 }
 
-int DBFile::Create (char *f_path, fType f_type, void *startup) {
+int DBFile::Create(char *f_path, fType f_type, void *startup) {
 }
 
-void DBFile::Load (Schema &f_schema, char *loadpath) {
+void DBFile::Load(Schema &f_schema, char *loadpath) {
 }
 
-int DBFile::Open (char *f_path) {
+int DBFile::Open(char *f_path) {
 }
 
-void DBFile::MoveFirst () {
+void DBFile::MoveFirst() {
 }
 
-int DBFile::Close () {
+int DBFile::Close() {
 }
 
-void DBFile::Add (Record &rec) {
+void DBFile::Add(Record &rec) {
 }
 
-int DBFile::GetNext (Record &fetchme) {
+int DBFile::GetNext(Record &fetchme) {
 }
 
-int DBFile::GetNext (Record &fetchme, CNF &cnf, Record &literal) {
+int DBFile::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 }
