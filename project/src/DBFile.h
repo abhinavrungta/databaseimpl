@@ -15,6 +15,12 @@ typedef enum {
 // stub DBFile header..replace it with your own DBFile.h 
 
 class DBFile {
+private:
+
+	File myFile;
+	Page writePageBuf;
+	off_t currentPage;
+	Page readPageBuf;
 
 public:
 	DBFile();

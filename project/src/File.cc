@@ -24,6 +24,10 @@ Page::~Page() {
 	delete myRecs;
 }
 
+int Page::GetLength() {
+	return numRecs;
+}
+
 void Page::EmptyItOut() {
 
 	// get rid of all of the records
