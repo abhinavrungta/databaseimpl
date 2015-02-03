@@ -17,23 +17,28 @@ DBFile::DBFile() {
 }
 
 int DBFile::Create(char *f_path, fType f_type, void *startup) {
-	myFile.Open(0, f_path);
-	std::string s = f_path;
-	int i = s.find_last_of('/');
-	std::string s2 = s.substr(i + 1);
+	try {
+		myFile.Open(0, f_path);
+		std::string s = f_path;
+		int i = s.find_last_of('/');
+		std::string s2 = s.substr(i + 1);
 
-	struct kv meta;
-	meta.name = s2.c_str();
-	meta.type = f_type;
+		struct kv meta;
+		meta.name = s2.c_str();
+		meta.type = f_type;
 
-	FILE *pFile = fopen("tmp", "a");
-	off_t size = sizeof(meta);
-	std::string s3 = std::to_string(size);
-	fputs(s3.c_str(), pFile);
-	fwrite(&meta, sizeof(struct kv), 1, pFile);
-	fclose(pFile);
-	myFile.Close();
-	return 1;
+		FILE *pFile = fopen("tmp", "a");
+		off_t size = sizeof(meta);
+		std::string s3 = std::to_string(size);
+		fputs(s3.c_str(), pFile);
+		fwrite(&meta, sizeof(struct kv), 1, pFile);
+		fclose(pFile);
+		myFile.Close();
+		return 1;
+	} catch (int e) {
+		cout << "An exception occurred. Exception Nr. " << e << '\n';
+		return 0;
+	}
 }
 
 fType DBFile::getFileMetaData(char* fName) {
@@ -75,9 +80,6 @@ void DBFile::Load(Schema &f_schema, char *loadpath) {
 	int counter = 0, i = 0;
 	while (temp.SuckNextRecord(&f_schema, tableFile) == 1) {
 		counter++;
-		if (counter % 10000 == 0) {
-			cerr << counter << "\n";
-		}
 		if (!p.Append(&temp)) {
 			myFile.AddPage(&p, i++);
 			p.EmptyItOut();
