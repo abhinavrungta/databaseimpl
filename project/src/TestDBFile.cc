@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <iostream>
 #include <limits.h>
-#include "../src/DBFile.h"
-#include "../src/Record.h"
+#include "DBFile.h"
+#include "Record.h"
 #include "gtest/gtest.h"
 
 extern "C" {

@@ -18,7 +18,7 @@ CPPFLAGS += -I$(FUSED_GTEST_DIR) -DGTEST_HAS_PTHREAD=0
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g
 
-TESTS=unittest.cc
+TESTS=TestDBFile.cc
 OBJECTS_TESTS=$(TESTS:.cc=.o)
 
 tag = -i
