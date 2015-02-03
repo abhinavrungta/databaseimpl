@@ -12,7 +12,7 @@ int yyparse(void);   // defined in y.tab.c
 
 extern struct AndList *final;
 
-// The fixture for testing class Foo.
+// The fixture for testing class DBFile.
 class DBFileTest: public testing::Test {
 protected:
 
@@ -53,29 +53,14 @@ protected:
 		}
 	};
 
-	char *supplier = "supplier";
-	char *partsupp = "partsupp";
-	char *part = "part";
-	char *nation = "nation";
-	char *customer = "customer";
-	char *orders = "orders";
-	char *region = "region";
-	char *lineitem = "lineitem";
-
-	//relation *s, *p, *ps, *n, *li, *r, *o, *c;
-
 	// Objects declared here can be used by all tests in the test case for DBFile.
-	// make sure that the file path/dir information below is correct
 	char *dbfile_dir = getenv("dbfile"); // dir where binary heap files should be stored
 	char *tpch_dir = getenv("tpch"); // dir where dbgen tpch files (extension *.tbl) can be found
 	//char *tpch_dir = "/Users/abhinavrungta/gitlab/databaseimpl/db"; // dir where dbgen tpch files (extension *.tbl) can be found
 	char *catalog_path = "catalog"; // full path of the catalog file
 	relation *rel;
-	// You can remove any or all of the following functions if its body
-	// is empty.
 
 	DBFileTest() {
-
 		// You can do set-up work for each test here.
 	}
 
@@ -85,34 +70,44 @@ protected:
 
 	// If the constructor and destructor are not enough for setting up
 	// and cleaning up each test, you can define the following methods:
-
 	virtual void SetUp() {
+		char *supplier = "supplier";
+		char *partsupp = "partsupp";
+		char *part = "part";
+		char *nation = "nation";
+		char *customer = "customer";
+		char *orders = "orders";
+		char *region = "region";
+		char *lineitem = "lineitem";
+
+		char* rel_ptr[] = { nation, region, customer, part, partsupp, orders,
+				lineitem };
 		cout
 				<< " \n** IMPORTANT: MAKE SURE THE INFORMATION BELOW IS CORRECT **\n";
 		cout << " catalog location: \t" << catalog_path << endl;
 		cout << " tpch files dir: \t" << tpch_dir << endl;
 		cout << " heap files dir: \t" << dbfile_dir << endl;
 		cout << " \n\n";
-		rel = new relation(lineitem, new Schema(catalog_path, lineitem),
+
+		int findx = 0;
+		while (findx < 1 || findx > 7) {
+			cout << "\n select table: \n";
+			cout << "\t 1. nation \n";
+			cout << "\t 2. region \n";
+			cout << "\t 3. customer \n";
+			cout << "\t 4. part \n";
+			cout << "\t 5. partsupp \n";
+			cout << "\t 6. orders \n";
+			cout << "\t 7. lineitem \n \t ";
+			cin >> findx;
+		}
+
+		char* reltype = rel_ptr[findx - 1];
+		rel = new relation(reltype, new Schema(catalog_path, reltype),
 				dbfile_dir);
-
-//		s = new relation(supplier, new Schema(catalog_path, supplier),
-//				dbfile_dir);
-//		ps = new relation(partsupp, new Schema(catalog_path, partsupp),
-//				dbfile_dir);
-//		p = new relation(part, new Schema(catalog_path, part), dbfile_dir);
-//		n = new relation(nation, new Schema(catalog_path, nation), dbfile_dir);
-//		li = new relation(lineitem, new Schema(catalog_path, lineitem),
-//				dbfile_dir);
-//		r = new relation(region, new Schema(catalog_path, region), dbfile_dir);
-//		o = new relation(orders, new Schema(catalog_path, orders), dbfile_dir);
-//		c = new relation(customer, new Schema(catalog_path, customer),
-//				dbfile_dir);
-
 	}
 
 	virtual void TearDown() {
-		//	delete s, p, ps, n, li, r, o, c;
 	}
 };
 
