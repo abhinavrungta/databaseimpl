@@ -24,6 +24,7 @@ class Record {
 
 	friend class ComparisonEngine;
 	friend class Page;
+	friend class BaseTest;
 
 private:
 	char *bits;

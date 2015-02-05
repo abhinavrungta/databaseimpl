@@ -1,10 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <iostream>
-#include <limits.h>
 #include "DBFile.h"
-#include "Record.h"
-#include "gtest/gtest.h"
+#include "TestBase.h"
 
 extern "C" {
 int yyparse(void);   // defined in y.tab.c
@@ -13,11 +8,10 @@ int yyparse(void);   // defined in y.tab.c
 extern struct AndList *final;
 
 // The fixture for testing class DBFile.
-class DBFileTest: public testing::Test {
+class DBFileTest: public BaseTest {
 protected:
 
 	class relation {
-
 	private:
 		char *rname;
 		char *prefix;
@@ -109,6 +103,7 @@ protected:
 
 	virtual void TearDown() {
 	}
+
 };
 
 TEST_F(DBFileTest, Load) {
