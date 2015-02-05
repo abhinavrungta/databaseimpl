@@ -12,8 +12,6 @@
 // stub file .. replace it with your own DBFile.cc
 
 DBFile::DBFile() {
-	currentPage = 0;
-	myFile.GetPage(&readPageBuf, currentPage);
 }
 
 int DBFile::Create(char *f_path, fType f_type, void *startup) {
@@ -92,6 +90,8 @@ void DBFile::Load(Schema &f_schema, char *loadpath) {
 
 int DBFile::Open(char *f_path) {
 	myFile.Open(1, f_path);
+	currentPage = -1;
+	//myFile.GetPage(&readPageBuf, currentPage);
 	return 1;
 }
 
@@ -101,10 +101,6 @@ void DBFile::MoveFirst() {
 }
 
 int DBFile::Close() {
-	if (writePageBuf.GetLength()) {
-		myFile.AddPage(&writePageBuf, myFile.GetLength());
-		writePageBuf.EmptyItOut();
-	}
 	if (myFile.Close()) {
 		return 1;
 	}
@@ -114,10 +110,20 @@ int DBFile::Close() {
 void DBFile::Add(Record &rec) {
 	Record temp;
 	temp.Consume(&rec);
-	if (!writePageBuf.Append(&temp)) {
-		myFile.AddPage(&writePageBuf, myFile.GetLength());
-		writePageBuf.EmptyItOut();
+	if (myFile.GetLength() == 0) {
 		writePageBuf.Append(&temp);
+		myFile.AddPage(&writePageBuf, 0);
+	} else {
+		myFile.GetPage(&writePageBuf, myFile.GetLength() - 2);
+		if (!writePageBuf.Append(&temp)) {
+			myFile.AddPage(&writePageBuf, myFile.GetLength() - 2);
+			writePageBuf.EmptyItOut();
+			writePageBuf.Append(&temp);
+			myFile.AddPage(&writePageBuf, myFile.GetLength() - 1);
+		} else {
+			myFile.AddPage(&writePageBuf, myFile.GetLength() - 2);
+		}
+		writePageBuf.EmptyItOut();
 	}
 }
 

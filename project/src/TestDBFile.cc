@@ -131,9 +131,62 @@ TEST_F(DBFileTest, Scan) {
 	int counter = 0;
 	while (dbfile.GetNext(temp) == 1) {
 		counter += 1;
-		temp.Print(rel->schema());
+		//temp.Print(rel->schema());
 	}
 	cout << " scanned " << counter << " recs \n";
+	dbfile.Close();
+}
+
+// MoveFirst works and by default record points to first.
+TEST_F(DBFileTest, MoveFirst) {
+
+	Record rec1, rec2;
+
+	DBFile dbfile;
+	dbfile.Open(rel->path());
+	dbfile.GetNext(rec1);
+	dbfile.MoveFirst();
+	dbfile.GetNext(rec2);
+
+	ASSERT_TRUE(RecordCompare(&rec1, &rec2));
+	dbfile.Close();
+}
+
+TEST_F(DBFileTest, Add) {
+	DBFile dbfile;
+	dbfile.Open(rel->path());
+	dbfile.MoveFirst();
+	Record rec1, tmp, rec2;
+	dbfile.GetNext(tmp);
+	rec1.Copy(&tmp);
+
+	int counter = 0;
+	while (dbfile.GetNext(rec2) == 1) {
+		counter += 1;
+	}
+	dbfile.Add(tmp);
+	dbfile.GetNext(rec2);
+	ASSERT_FALSE(RecordCompare(&rec1, &rec2));
+
+	dbfile.Close();
+}
+
+TEST_F(DBFileTest, Next) {
+	DBFile dbfile;
+	dbfile.Open(rel->path());
+	dbfile.MoveFirst();
+	Record rec1, tmp, rec2;
+	dbfile.GetNext(tmp);
+	rec1.Copy(&tmp);
+
+	int counter = 0;
+	while (dbfile.GetNext(rec2) == 1) {
+		counter += 1;
+	}
+	dbfile.Add(tmp);
+	dbfile.GetNext(rec2);
+	ASSERT_FALSE(RecordCompare(&rec1, &rec2));
+
 	dbfile.Close();
 }
 
