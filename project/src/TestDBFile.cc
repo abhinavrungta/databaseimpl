@@ -50,7 +50,6 @@ protected:
 	// Objects declared here can be used by all tests in the test case for DBFile.
 	char *dbfile_dir = getenv("dbfile"); // dir where binary heap files should be stored
 	char *tpch_dir = getenv("tpch"); // dir where dbgen tpch files (extension *.tbl) can be found
-	//char *tpch_dir = "/Users/abhinavrungta/gitlab/databaseimpl/db"; // dir where dbgen tpch files (extension *.tbl) can be found
 	char *catalog_path = "catalog"; // full path of the catalog file
 	relation *rel;
 
@@ -83,18 +82,18 @@ protected:
 		cout << " heap files dir: \t" << dbfile_dir << endl;
 		cout << " \n\n";
 
-		int findx = 0;
-		while (findx < 1 || findx > 7) {
-			cout << "\n select table: \n";
-			cout << "\t 1. nation \n";
-			cout << "\t 2. region \n";
-			cout << "\t 3. customer \n";
-			cout << "\t 4. part \n";
-			cout << "\t 5. partsupp \n";
-			cout << "\t 6. orders \n";
-			cout << "\t 7. lineitem \n \t ";
-			cin >> findx;
-		}
+		int findx = 7;
+//		while (findx < 1 || findx > 7) {
+//			cout << "\n select table: \n";
+//			cout << "\t 1. nation \n";
+//			cout << "\t 2. region \n";
+//			cout << "\t 3. customer \n";
+//			cout << "\t 4. part \n";
+//			cout << "\t 5. partsupp \n";
+//			cout << "\t 6. orders \n";
+//			cout << "\t 7. lineitem \n \t ";
+//			cin >> findx;
+//		}
 
 		char* reltype = rel_ptr[findx - 1];
 		rel = new relation(reltype, new Schema(catalog_path, reltype),
@@ -106,6 +105,7 @@ protected:
 
 };
 
+// load dbfile from raw file.
 TEST_F(DBFileTest, Load) {
 	DBFile dbfile;
 	cout << " DBFile will be created at " << rel->path() << endl;
@@ -152,64 +152,84 @@ TEST_F(DBFileTest, MoveFirst) {
 	dbfile.Close();
 }
 
+// Add record, verify it is consumed, verify it is added at last, verify number of records.
 TEST_F(DBFileTest, Add) {
 	DBFile dbfile;
-	dbfile.Open(rel->path());
-	dbfile.MoveFirst();
 	Record rec1, tmp, rec2;
+	dbfile.Open(rel->path());
+	int ctr1 = 0;
+	while (dbfile.GetNext(tmp) == 1) {
+		ctr1 += 1;
+	}
+
+	dbfile.MoveFirst();
 	dbfile.GetNext(tmp);
 	rec1.Copy(&tmp);
-
-	int counter = 0;
-	while (dbfile.GetNext(rec2) == 1) {
-		counter += 1;
-	}
 	dbfile.Add(tmp);
-	dbfile.GetNext(rec2);
-	ASSERT_FALSE(RecordCompare(&rec1, &rec2));
-
+	dbfile.MoveFirst();
+	ASSERT_TRUE(GetRecordBits(&tmp)==NULL);
+	int ctr2 = 0;
+	while (dbfile.GetNext(rec2) == 1) {
+		ctr2 += 1;
+	}
 	dbfile.Close();
+	ASSERT_TRUE(RecordCompare(&rec1, &rec2));
+	ASSERT_EQ(ctr2, ctr1 + 1);
 }
 
+// verify that records added in same order as tpch file for heap filesystem.
 TEST_F(DBFileTest, Next) {
 	DBFile dbfile;
 	dbfile.Open(rel->path());
-	dbfile.MoveFirst();
-	Record rec1, tmp, rec2;
-	dbfile.GetNext(tmp);
-	rec1.Copy(&tmp);
 
-	int counter = 0;
-	while (dbfile.GetNext(rec2) == 1) {
-		counter += 1;
+	Schema lineitem("catalog", "lineitem");
+	// grow the CNF expression from the parse tree
+	CNF myComparison;
+	Record literal;
+	myComparison.GrowFromParseTree(final, &lineitem, literal);
+
+	char tbl_path[100]; // construct path of the tpch flat text file
+	sprintf(tbl_path, "%s%s.tbl", tpch_dir, rel->name());
+	// now open up the text file and start procesing it
+	FILE *tableFile = fopen(tbl_path, "r");
+
+	Record raw;
+	while (raw.SuckNextRecord(&lineitem, tableFile) == 1) {
+		Record db;
+		dbfile.GetNext(db);
+		ASSERT_TRUE(RecordCompare(&raw, &db));
 	}
-	dbfile.Add(tmp);
-	dbfile.GetNext(rec2);
-	ASSERT_FALSE(RecordCompare(&rec1, &rec2));
-
 	dbfile.Close();
 }
 
-// scan of a DBfile and apply a filter predicate
-TEST_F(DBFileTest, ScanF) {
+// verify that records added in same order as tpch file for heap filesystem, after filtering based on cnf
+TEST_F(DBFileTest, NextCnf) {
+	DBFile dbfile;
 
-	cout << " Filter with CNF for : " << rel->name() << "\n";
+	dbfile.Open(rel->path());
+	char tbl_path[100]; // construct path of the tpch flat text file
+	sprintf(tbl_path, "%s%s.tbl", tpch_dir, rel->name());
+	cout << " tpch file will be loaded from " << tbl_path << endl;
+	dbfile.Load(*(rel->schema()), tbl_path);
+	dbfile.Close();
 
+	dbfile.Open(rel->path());
 	CNF cnf;
-	Record literal;
+	Record literal, db, raw;
+	Schema* schema = rel->schema();
+	ComparisonEngine comp;
 	rel->get_cnf(cnf, literal);
 
-	DBFile dbfile;
-	dbfile.Open(rel->path());
-	dbfile.MoveFirst();
-
-	Record temp;
-
-	int counter = 0;
-	while (dbfile.GetNext(temp, cnf, literal) == 1) {
-		counter += 1;
-		temp.Print(rel->schema());
+	// now open up the text file and start procesing it
+	FILE *tableFile = fopen(tbl_path, "r");
+	int ctr = 0;
+	while (raw.SuckNextRecord(schema, tableFile) == 1) {
+		if (comp.Compare(&raw, &literal, &cnf)) {
+			ctr++;
+			dbfile.GetNext(db, cnf, literal);
+			ASSERT_TRUE(RecordCompare(&raw, &db));
+		}
 	}
-	cout << " selected " << counter << " recs \n";
+	ASSERT_FALSE(dbfile.GetNext(db, cnf, literal));
 	dbfile.Close();
 }

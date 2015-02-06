@@ -28,4 +28,8 @@ protected:
 		}
 		return false;
 	}
+
+	char* GetRecordBits(Record *a) {
+		return a->GetBits();
+	}
 };
