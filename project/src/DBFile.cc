@@ -8,6 +8,7 @@
 #include "Defs.h"
 #include <string.h>
 #include <iostream>
+#include <sstream>
 
 // stub file .. replace it with your own DBFile.cc
 
@@ -27,7 +28,9 @@ int DBFile::Create(char *f_path, fType f_type, void *startup) {
 
 		FILE *pFile = fopen("tmp", "a");
 		off_t size = sizeof(meta);
-		std::string s3 = std::to_string(size);
+		std::stringstream ss;
+		ss << size;
+		std::string s3 = ss.str();
 		fputs(s3.c_str(), pFile);
 		fwrite(&meta, sizeof(struct kv), 1, pFile);
 		fclose(pFile);

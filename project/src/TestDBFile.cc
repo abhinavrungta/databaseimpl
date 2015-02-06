@@ -48,13 +48,14 @@ protected:
 	};
 
 	// Objects declared here can be used by all tests in the test case for DBFile.
-	char *dbfile_dir = getenv("dbfile"); // dir where binary heap files should be stored
-	char *tpch_dir = getenv("tpch"); // dir where dbgen tpch files (extension *.tbl) can be found
-	char *catalog_path = "catalog"; // full path of the catalog file
+	char *dbfile_dir, *tpch_dir, *catalog_path; // full path of the catalog file
 	relation *rel;
 
 	DBFileTest() {
 		// You can do set-up work for each test here.
+	dbfile_dir = getenv("dbfile"); // dir where binary heap files should be stored
+	tpch_dir = getenv("tpch"); // dir where dbgen tpch files (extension *.tbl) can be found
+	catalog_path = "catalog"; // full path of the catalog file
 	}
 
 	virtual ~DBFileTest() {

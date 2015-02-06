@@ -1,5 +1,4 @@
 CC = g++ -O2 -Wno-deprecated 
-
 # Points to the root of fused Google Test, relative to where this file is.
 FUSED_GTEST_DIR = ..
 
@@ -80,3 +79,4 @@ clean:
 	rm -f lex.yy.c
 	rm -f y.tab.h
 	rm -rf test
+	rm -rf main
