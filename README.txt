@@ -1,27 +1,17 @@
 DBI PROJECT SETUP DETAILS
-apt-get install bison
+1. apt-get install bison
 2. apt-get install flex
-3. Modify line 34 in Main.cc to read from wherever you put your tables.
-4. run "make main" and not just "make" to create main.
 
+RUNNING TESTS
+1. TO RUN THE TEST. JUST EXECUTE ‘run.sh’.
 
-TPCH Data
-1. Download TPCH source.
-2. Go to root of folder after unpacking tpch.
-3. export DSS_PATH="path where u want generated files"
-4. export PATH_SEP="path seperator for the mahchine '/'"
-5. edit makefile to specify the 'Machine' and 'Database' 
-6. run - make (to generate binary)
-7. run ./dbgen -s 0.01 (to generate .tbl files in DSS_PATH location with scale factor 0.01)
+What does run.sh do -
+1. sets the path for tech files (./db/) and generated DBFiles (./dbfile/)
+2. make test.
+3. runs the test.
 
+FOLDER STRUCTURE -
+1. TPCH FILES ARE IN FOLDER ‘DB’
+2. SOURCE AND TEST FILES ARE IN FOLDER ‘PROJECT’.
 
-GTEST
-1. Add tests in test folder
-2. In each test file, add the header file of the functions to be tested. So try to keep all function declaration in header files.
-3. Run make in /test folder.
-4. run ./test to execute tests
-
-Main
-1. run make in /src folder
-2. run ./main to execute program.
-
+Note: By Default I will be working on linetime table.
