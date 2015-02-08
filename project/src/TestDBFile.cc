@@ -53,9 +53,9 @@ protected:
 
 	DBFileTest() {
 		// You can do set-up work for each test here.
-	dbfile_dir = getenv("dbfile"); // dir where binary heap files should be stored
-	tpch_dir = getenv("tpch"); // dir where dbgen tpch files (extension *.tbl) can be found
-	catalog_path = "catalog"; // full path of the catalog file
+		dbfile_dir = getenv("dbfile"); // dir where binary heap files should be stored
+		tpch_dir = getenv("tpch"); // dir where dbgen tpch files (extension *.tbl) can be found
+		catalog_path = "catalog"; // full path of the catalog file
 	}
 
 	virtual ~DBFileTest() {
@@ -84,6 +84,7 @@ protected:
 		cout << " \n\n";
 
 		int findx = 7;
+//		findx = 0;
 //		while (findx < 1 || findx > 7) {
 //			cout << "\n select table: \n";
 //			cout << "\t 1. nation \n";
