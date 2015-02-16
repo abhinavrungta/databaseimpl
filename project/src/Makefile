@@ -17,8 +17,10 @@ CPPFLAGS += -I$(FUSED_GTEST_DIR) -DGTEST_HAS_PTHREAD=0
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g
 
-TESTS=TestDBFile.cc
+TESTS=TestBigQ.cc
 OBJECTS_TESTS=$(TESTS:.cc=.o)
+A1TESTS=TestDBFile.cc
+A1OBJECTS_TESTS=$(A1TESTS:.cc=.o)
 
 tag = -i
 
@@ -26,14 +28,22 @@ ifdef linux
 tag = -n
 endif
 	
-main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab.o lex.yy.o main.o
-	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o y.tab.o lex.yy.o main.o -ll
+main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o
+	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o -ll
 	
-test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab.o lex.yy.o test.o gtest-all.o gtest_main.o
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o test Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o y.tab.o lex.yy.o $(OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
+test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o gtest-all.o gtest_main.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o $(OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
 
 test.o :
 	for dir in $(TESTS); do \
+		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $$dir; \
+	done
+
+a1test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o a1test.o gtest-all.o gtest_main.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o test Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o $(A1OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
+
+a1test.o :
+	for dir in $(A1TESTS); do \
 		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $$dir; \
 	done
 
@@ -45,6 +55,12 @@ Comparison.o: Comparison.cc
 	
 ComparisonEngine.o: ComparisonEngine.cc
 	$(CC) -g -c ComparisonEngine.cc
+
+Pipe.o: Pipe.cc
+	$(CC) -g -c Pipe.cc
+
+BigQ.o: BigQ.cc
+	$(CC) -g -c BigQ.cc
 	
 DBFile.o: DBFile.cc
 	$(CC) -g -c DBFile.cc
