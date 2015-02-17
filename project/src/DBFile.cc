@@ -114,16 +114,21 @@ void DBFile::Add(Record &rec) {
 	Record temp;
 	temp.Consume(&rec);
 	if (myFile.GetLength() == 0) {
+		// if file is empty, add record to the new page and add page to File.
 		writePageBuf.Append(&temp);
 		myFile.AddPage(&writePageBuf, 0);
 	} else {
+		// if File is not empty, get the last page in the File.
 		myFile.GetPage(&writePageBuf, myFile.GetLength() - 2);
 		if (!writePageBuf.Append(&temp)) {
+			// if Record cannot be added in the last page, Add the page back in its position.
 			myFile.AddPage(&writePageBuf, myFile.GetLength() - 2);
 			writePageBuf.EmptyItOut();
+			// Add the record to a new page and append.
 			writePageBuf.Append(&temp);
 			myFile.AddPage(&writePageBuf, myFile.GetLength() - 1);
 		} else {
+			// If record can be added to the last page, add the page back to the File.
 			myFile.AddPage(&writePageBuf, myFile.GetLength() - 2);
 		}
 		writePageBuf.EmptyItOut();
