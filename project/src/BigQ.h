@@ -48,8 +48,9 @@ public:
 	void appendRunToFile(vector<Record*> aRun);
 	int GetMin(Record* minRec);
 	int updateRecordBuffer(int i);
-	void* TPMMS(void*);
 	int MergeRuns();
-};
+	void* TPMMS();
 
-#endif
+private:
+	static void* TPMMSHelper(void*);
+};

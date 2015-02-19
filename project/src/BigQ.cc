@@ -23,7 +23,6 @@ BigQ::BigQ(Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	std::stringstream ss;
 	ss << seconds;
 	string ts = ss.str();
-	cout << ts << endl;
 	fileName = new char[100];
 	sprintf(fileName, "Phase1%s", ts.c_str());
 	tmpFile.Open(0, fileName);
@@ -31,7 +30,7 @@ BigQ::BigQ(Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 
 	noOfRuns = 0;
 	pthread_t workerThread;
-	pthread_create(&workerThread, NULL, TPMMS, (void *) this);
+	pthread_create(&workerThread, NULL, &TPMMSHelper, (void *) this);
 }
 
 BigQ::~BigQ() {
@@ -76,7 +75,6 @@ void BigQ::appendRunToFile(vector<Record*> aRun) {
 	int pos = !tmpFile.GetLength() ? 0 : tmpFile.GetLength() - 1;
 	tmpFile.AddPage(&tmpPage, pos);
 	tmpPage.EmptyItOut();
-	delete tmpPage;
 
 	// Keep track of the number of pages in this run.
 	noOfPages.push_back(pageCountPerRun + 1);
@@ -104,8 +102,8 @@ int BigQ::updateRecordBuffer(int i) {
 	Record tmpRec;
 	Page tmpPage;
 	// if there is a record in the page buffer, then get it and update record buffer.
-	if (!pageBuffer[i].GetFirst(&tmpRec)) {
-		recordBuffer[i] = tmpRec;
+	if (pageBuffer[i].GetFirst(&tmpRec)) {
+		recordBuffer[i] = tmpRec;// update in vector works by direct access, rather than using insert.
 		return 1;
 	} else {
 		// pagebuffer is empty.
@@ -138,28 +136,27 @@ int BigQ::MergeRuns() {
 		return 0;
 	}
 
-	startPageIndex = new int[noOfRuns]; //index of the header at each run
-	PageCtrPerRun = new int[noOfRuns]; //index of the header at each run
-	recordBuffer = new Record[noOfRuns]; // m-1 header record of m-1 header pages
-	pageBuffer = new Page[noOfRuns]; // m-1 header pages of m-1 runs
-
-	if (!startPageIndex || !PageCtrPerRun || !recordBuffer || !pageBuffer) {
-		cerr << "allocation failed!" << endl;
-	}
-
+	Record tmpRec;
+	Page tmpPage;
 // Initialize Page Ctr and Start Index Array.
-	startPageIndex[0] = 0;
-	PageCtrPerRun[0] = 0;
+	PageCtrPerRun.insert(PageCtrPerRun.begin(), noOfRuns, 0);
+	startPageIndex.insert(startPageIndex.begin(), 0);
+
 	for (int i = 1; i < noOfRuns; i++) {
-		startPageIndex[i] = startPageIndex[i - 1] + noOfPages.at(i - 1);
-		PageCtrPerRun[i] = 0;
+		int val = startPageIndex[i - 1] + noOfPages[i - 1];
+		startPageIndex.insert(startPageIndex.begin() + i, val);
 	}
 
-// Fetch 1st page from each run and put them in PageBuffer. Add 1st Record from each. Assuming that there is atleast one page and one record in each run.
+	// Fetch 1st page from each run and put them in PageBuffer. Add 1st Record from each. Assuming that there is atleast one page and one record in each run.
 	for (int i = 0; i < noOfRuns; i++) {
-		updateRecordBuffer(i);
+		int pos = startPageIndex[i] + PageCtrPerRun[i];
+		tmpFile.GetPage(&tmpPage, pos);
+		PageCtrPerRun[i]++;		// increment page count for the run.
+		pageBuffer.insert(pageBuffer.begin() + i, tmpPage);	// update page buffer.
+		pageBuffer[i].GetFirst(&tmpRec);	//update record buffer.
+		recordBuffer.insert(recordBuffer.begin() + i, tmpRec);
 	}
-
+	int recCtr = 0;
 	// while there are records in the record buffer.
 	while (recordBuffer.size() > 0) {
 		Record tmpRec;
@@ -170,26 +167,31 @@ int BigQ::MergeRuns() {
 			break;
 		}
 		updateRecordBuffer(i);
+		recCtr++;
+		cout << "Merged Record # " << recCtr << endl;
 	}
 
-	delete[] pageBuffer;
-	delete[] PageCtrPerRun;
-	delete[] startPageIndex;
-	delete[] recordBuffer;
+	pageBuffer.clear();
+	PageCtrPerRun.clear();
+	startPageIndex.clear();
+	recordBuffer.clear();
 	return 1;
 }
 
-void* BigQ::TPMMS(void *arg) {
+void* BigQ::TPMMSHelper(void* context) {
+	((BigQ *) context)->TPMMS();
+}
+
+void* BigQ::TPMMS() {
+	int recCtr = 0;
 	Record recFromPipe;
 	vector<Record*> aRunVector;
 	Page currentPage;
 	int pageCountPerRun = 0;
-
 // while there are records in the input pipe.
 	while (input->Remove(&recFromPipe)) {
 		Record *copyRec = new Record();
 		copyRec->Copy(&recFromPipe); //Copy Record as currentPage.Append() would consume the record
-
 		if (!currentPage.Append(&recFromPipe)) {
 			//page full, start new page and increase the page count.
 			pageCountPerRun++;
@@ -207,8 +209,8 @@ void* BigQ::TPMMS(void *arg) {
 			currentPage.Append(&recFromPipe); // add the record which could not be added to the page.
 		}
 		aRunVector.push_back(copyRec); // push back the copy onto vector
+		recCtr++;
 	} // Input pipe is empty.
-
 // if there is anything in vector it should be sorted and written out to file
 	if (aRunVector.size() > 0) {
 		pageCountPerRun = 0; //reset pageCountPerRun for next run as current run is full
@@ -218,7 +220,8 @@ void* BigQ::TPMMS(void *arg) {
 		aRunVector.clear();
 		noOfRuns++;
 	}
-
+	cout << "Phase 1 Completed with " << recCtr << " records" << endl;
+	cout << "Runs " << noOfRuns << endl;
 	// Merge
 	MergeRuns();
 	output->ShutDown();
