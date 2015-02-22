@@ -101,19 +101,18 @@ protected:
 		cout << " heap files dir: \t" << dbfile_dir << endl;
 		cout << " \n\n";
 
-		int findx = 7;
-		//		findx = 0;
-		//		while (findx < 1 || findx > 7) {
-		//			cout << "\n select table: \n";
-		//			cout << "\t 1. nation \n";
-		//			cout << "\t 2. region \n";
-		//			cout << "\t 3. customer \n";
-		//			cout << "\t 4. part \n";
-		//			cout << "\t 5. partsupp \n";
-		//			cout << "\t 6. orders \n";
-		//			cout << "\t 7. lineitem \n \t ";
-		//			cin >> findx;
-		//		}
+		int findx = 0;
+		while (findx < 1 || findx > 7) {
+			cout << "\n select table: \n";
+			cout << "\t 1. nation \n";
+			cout << "\t 2. region \n";
+			cout << "\t 3. customer \n";
+			cout << "\t 4. part \n";
+			cout << "\t 5. partsupp \n";
+			cout << "\t 6. orders \n";
+			cout << "\t 7. lineitem \n \t ";
+			cin >> findx;
+		}
 
 		char* reltype = rel_ptr[findx - 1];
 		rel = new relation(reltype, new Schema(catalog_path, reltype),

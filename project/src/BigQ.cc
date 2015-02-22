@@ -167,10 +167,6 @@ int BigQ::MergeRuns() {
 		recCtr++;
 	}
 
-	pageBuffer.clear();
-	PageCtrPerRun.clear();
-	startPageIndex.clear();
-	recordBuffer.clear();
 	return 1;
 }
 
@@ -223,5 +219,12 @@ void* BigQ::TPMMS() {
 
 	// Merge
 	MergeRuns();
+
+	pageBuffer.clear();
+	PageCtrPerRun.clear();
+	startPageIndex.clear();
+	recordBuffer.clear();
+
 	output->ShutDown();
+	remove(fileName);
 }
