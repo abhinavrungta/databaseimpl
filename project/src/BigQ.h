@@ -1,5 +1,4 @@
 #include <vector>
-
 #include "Comparison.h"
 #include "ComparisonEngine.h"
 #include "File.h"
@@ -19,8 +18,11 @@ class BigQ {
 	vector<int> noOfPages;
 	vector<int> startPageIndex;
 	vector<int> PageCtrPerRun;
-	vector<Record> recordBuffer;
-	vector<Page> pageBuffer;
+	vector<Record*> recordBuffer;
+	vector<Page*> pageBuffer;
+
+	Record *tmpRec;
+	Page *tmpPage;
 
 	struct CompareRecords {
 		OrderMaker *pSortOrder;
@@ -34,9 +36,9 @@ class BigQ {
 
 			ComparisonEngine ce;
 			//sort in a descending order, 'cause we fetch it reversely
-			if (ce.Compare(r11, r22, pSortOrder) == 1)
+			if (ce.Compare(r11, r22, pSortOrder) > 0) {
 				return true;
-			else
+			} else
 				return false;
 		}
 	};

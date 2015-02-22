@@ -129,7 +129,7 @@ int CNF::GetSortOrders(OrderMaker &left, OrderMaker &right) {
 		if (!((orList[i][0].operand1 == Left && orList[i][0].operand2 == Right)
 				|| (orList[i][0].operand2 == Left
 						&& orList[i][0].operand1 == Right))) {
-			continue;
+			//continue;
 		}
 
 		// since we are here, we have found a join attribute!!!

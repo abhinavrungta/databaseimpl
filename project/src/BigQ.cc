@@ -16,7 +16,6 @@ BigQ::BigQ(Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	output = &out;
 	sortOrder = &sortorder;
 	runSize = runlen;
-
 	// create a timestamp based tempFile for Phase1.
 	time_t seconds;
 	time(&seconds);
@@ -27,8 +26,9 @@ BigQ::BigQ(Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen) {
 	sprintf(fileName, "Phase1%s", ts.c_str());
 	tmpFile.Open(0, fileName);
 	tmpFile.Close();
-
 	noOfRuns = 0;
+	tmpRec = new Record();
+	tmpPage = new Page();
 	pthread_t workerThread;
 	pthread_create(&workerThread, NULL, &TPMMSHelper, (void *) this);
 }
@@ -52,20 +52,18 @@ void BigQ::appendRunToFile(vector<Record*> aRun) {
 	tmpFile.Open(1, fileName);
 	int pageCountPerRun = 0;
 	//aRun has already been sorted, put the records into file
-	Page tmpPage;
-	Record copyRec;
 	int size = aRun.size();
 	// iterate over all Records and add to Pages and then to File.
 	// list is in descending order and we add to file in ascending order.
 	for (int i = 0; i < size; i++) {
-		copyRec.Copy(aRun.back());
-		if (!tmpPage.Append(&copyRec)) {
+		tmpRec->Copy(aRun.back());
+		if (!tmpPage->Append(tmpRec)) {
 			pageCountPerRun++;
 			// if page is full, get the position to which we can append the page.
 			int pos = !tmpFile.GetLength() ? 0 : tmpFile.GetLength() - 1;
-			tmpFile.AddPage(&tmpPage, pos);
-			tmpPage.EmptyItOut();
-			tmpPage.Append(&copyRec);
+			tmpFile.AddPage(tmpPage, pos);
+			tmpPage->EmptyItOut();
+			tmpPage->Append(tmpRec);
 		}
 		// remove the record added to the page from Vector.
 		aRun.pop_back();
@@ -73,8 +71,8 @@ void BigQ::appendRunToFile(vector<Record*> aRun) {
 
 	// add the last page to the File.
 	int pos = !tmpFile.GetLength() ? 0 : tmpFile.GetLength() - 1;
-	tmpFile.AddPage(&tmpPage, pos);
-	tmpPage.EmptyItOut();
+	tmpFile.AddPage(tmpPage, pos);
+	tmpPage->EmptyItOut();
 
 	// Keep track of the number of pages in this run.
 	noOfPages.push_back(pageCountPerRun + 1);
@@ -85,10 +83,10 @@ void BigQ::appendRunToFile(vector<Record*> aRun) {
 int BigQ::GetMin(Record* minRec) {
 	if (recordBuffer.size() > 0) {
 		int pos = 0;
-		minRec->Copy(&recordBuffer[0]);
+		minRec->Copy(recordBuffer.at(0));
 		for (int i = 1; i < recordBuffer.size(); i++) {
-			if (lessThan(&recordBuffer[i], minRec, sortOrder)) {
-				minRec->Copy(&recordBuffer[i]);
+			if (lessThan(recordBuffer.at(i), minRec, sortOrder)) {
+				minRec->Copy(recordBuffer.at(i));
 				pos = i;
 			}
 		}
@@ -99,22 +97,19 @@ int BigQ::GetMin(Record* minRec) {
 
 // Update Record Buffer and other buffers during Merge Phase.
 int BigQ::updateRecordBuffer(int i) {
-	Record tmpRec;
-	Page tmpPage;
 	// if there is a record in the page buffer, then get it and update record buffer.
-	if (pageBuffer[i].GetFirst(&tmpRec)) {
-		recordBuffer[i] = tmpRec;// update in vector works by direct access, rather than using insert.
+	if (pageBuffer.at(i)->GetFirst(tmpRec)) {
+		recordBuffer.at(i)->Consume(tmpRec);// update in vector works by direct access, rather than using insert.
 		return 1;
 	} else {
 		// pagebuffer is empty.
-		if (PageCtrPerRun[i] < noOfPages[i]) {
+		if (PageCtrPerRun.at(i) < noOfPages.at(i)) {
 			// if there are more pages available in the run, get it.
 			int pos = startPageIndex[i] + PageCtrPerRun[i];
-			tmpFile.GetPage(&tmpPage, pos);
-			PageCtrPerRun[i]++;		// increment page count for the run.
-			pageBuffer[i] = tmpPage;		// update page buffer.
-			pageBuffer[i].GetFirst(&tmpRec);	//update record buffer.
-			recordBuffer[i] = tmpRec;
+			tmpFile.GetPage(pageBuffer.at(i), pos); // update page buffer.
+			PageCtrPerRun.at(i) = PageCtrPerRun.at(i) + 1; // increment page count for the run.
+			pageBuffer.at(i)->GetFirst(tmpRec);	//update record buffer.
+			recordBuffer.at(i)->Consume(tmpRec);
 			return 1;
 		} else {
 			// no more pages are available, run completed. Update books.
@@ -136,39 +131,40 @@ int BigQ::MergeRuns() {
 		return 0;
 	}
 
-	Record tmpRec;
-	Page tmpPage;
 // Initialize Page Ctr and Start Index Array.
 	PageCtrPerRun.insert(PageCtrPerRun.begin(), noOfRuns, 0);
 	startPageIndex.insert(startPageIndex.begin(), 0);
 
 	for (int i = 1; i < noOfRuns; i++) {
-		int val = startPageIndex[i - 1] + noOfPages[i - 1];
-		startPageIndex.insert(startPageIndex.begin() + i, val);
+		int val = startPageIndex.at(i - 1) + noOfPages.at(i - 1);
+		startPageIndex.push_back(val);
+		//startPageIndex.insert(startPageIndex.begin() + i, val);
 	}
 
 	// Fetch 1st page from each run and put them in PageBuffer. Add 1st Record from each. Assuming that there is atleast one page and one record in each run.
 	for (int i = 0; i < noOfRuns; i++) {
-		int pos = startPageIndex[i] + PageCtrPerRun[i];
-		tmpFile.GetPage(&tmpPage, pos);
-		PageCtrPerRun[i]++;		// increment page count for the run.
-		pageBuffer.insert(pageBuffer.begin() + i, tmpPage);	// update page buffer.
-		pageBuffer[i].GetFirst(&tmpRec);	//update record buffer.
-		recordBuffer.insert(recordBuffer.begin() + i, tmpRec);
+		int pos = startPageIndex.at(i) + PageCtrPerRun.at(i);
+		Page *tPage = new Page();
+		tmpFile.GetPage(tPage, pos);
+		PageCtrPerRun.at(i) = PageCtrPerRun.at(i) + 1;// increment page count for the run.
+		pageBuffer.insert(pageBuffer.begin() + i, tPage);// update page buffer.
+		Record *tRec = new Record();
+		pageBuffer.at(i)->GetFirst(tRec);	//update record buffer.
+		recordBuffer.insert(recordBuffer.begin() + i, tRec);
 	}
 	int recCtr = 0;
 	// while there are records in the record buffer.
 	while (recordBuffer.size() > 0) {
-		Record tmpRec;
-		int i = GetMin(&tmpRec);
+		int i = GetMin(tmpRec);
+		Record *tRec = new Record();
+		tRec->Consume(tmpRec);
 		// push min element through out-pipe
-		output->Insert(&tmpRec);
+		output->Insert(tRec);
 		if (i == -1) {
 			break;
 		}
 		updateRecordBuffer(i);
 		recCtr++;
-		cout << "Merged Record # " << recCtr << endl;
 	}
 
 	pageBuffer.clear();
@@ -220,8 +216,11 @@ void* BigQ::TPMMS() {
 		aRunVector.clear();
 		noOfRuns++;
 	}
-	cout << "Phase 1 Completed with " << recCtr << " records" << endl;
-	cout << "Runs " << noOfRuns << endl;
+	pageBuffer.reserve(noOfRuns);
+	recordBuffer.reserve(noOfRuns);
+	startPageIndex.reserve(noOfRuns);
+	PageCtrPerRun.reserve(noOfRuns);
+
 	// Merge
 	MergeRuns();
 	output->ShutDown();
