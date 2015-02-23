@@ -12,108 +12,145 @@
 #include "Record.h"
 #include "TestBase.h"
 
+typedef struct {
+	Pipe *inputPipe;
+	Pipe *outputPipe;
+	OrderMaker *order;
+	BaseTest::relation *rel;
+	bool print;
+	bool write;
+} testutil;
+
+class TestFactory {
+public:
+	virtual int producer() {
+	}
+	virtual int consumer() {
+	}
+	TestFactory();
+	virtual ~TestFactory();
+};
+
+class Test1: public TestFactory {
+	testutil *t;
+public:
+	virtual int producer();
+	virtual int consumer();
+
+	Test1(void *params);
+	virtual ~Test1();
+};
+
+Test1::Test1(void *params) :
+		TestFactory() {
+	t = (testutil *) params;
+}
+TestFactory::TestFactory() {
+}
+
+TestFactory::~TestFactory() {
+}
+
+Test1::~Test1() {
+}
+
+int Test1::producer() {
+	Pipe *myPipe = (Pipe *) t->inputPipe;
+
+	Record temp;
+	int counter = 0;
+
+	DBFile dbfile;
+	dbfile.Open(t->rel->path());
+	cout << " producer: opened DBFile " << t->rel->path() << endl;
+	dbfile.MoveFirst();
+
+	while (dbfile.GetNext(temp) == 1) {
+		counter += 1;
+		if (counter % 100000 == 0) {
+			cerr << " producer: " << counter << endl;
+		}
+		myPipe->Insert(&temp);
+	}
+	dbfile.Close();
+	myPipe->ShutDown();
+
+	cout << " producer: inserted " << counter << " recs into the pipe\n";
+	return 1;
+}
+
+int Test1::consumer() {
+	ComparisonEngine ceng;
+
+	DBFile dbfile;
+	char outfile[100];
+
+	if (t->write) {
+		sprintf(outfile, "%s.bigq", t->rel->path());
+		dbfile.Create(outfile, heap, NULL);
+	}
+
+	int err = 0;
+	int i = 0;
+
+	Record rec[2];
+	Record *last = NULL, *prev = NULL;
+
+	while (t->outputPipe->Remove(&rec[i % 2])) {
+		prev = last;
+		last = &rec[i % 2];
+		if (prev && last) {
+			if (ceng.Compare(prev, last, t->order) == 1) {
+				err++;
+			}
+			if (t->write) {
+				dbfile.Add(*prev);
+			}
+		}
+		if (t->print) {
+			last->Print(t->rel->schema());
+		}
+		i++;
+	}
+
+	cout << " consumer: removed " << i << " recs from the pipe\n";
+	if (t->write) {
+		if (last) {
+			dbfile.Add(*last);
+		}
+		cerr << " consumer: recs removed written out as heap DBFile at "
+				<< outfile << endl;
+		dbfile.Close();
+	}
+	cerr << " consumer: " << (i - err) << " recs out of " << i
+			<< " recs in sorted order \n";
+	if (err) {
+		cerr << " consumer: " << err << " recs failed sorted order test \n"
+				<< endl;
+	}
+	return 1;
+}
+
 // The fixture for testing class DBFile.
 class BigQTest: public BaseTest {
+
 public:
 	static void* ProducerHelper(void* arg) {
-		((testutil *) arg)->obj->producer(arg);
+		((TestFactory *) arg)->producer();
 	}
 
 	static void* ConsumerHelper(void* arg) {
-		((testutil *) arg)->obj->consumer(arg);
+		((TestFactory *) arg)->consumer();
 	}
+
 protected:
 	int runlen;
-	typedef struct {
-		Pipe *pipe;
-		OrderMaker *order;
-		bool print;
-		bool write;
-		BigQTest *obj;
-	} testutil;
 
 	BigQTest() {
 	}
 
 	virtual ~BigQTest() {
 		// You can do clean-up work that doesn't throw exceptions here.
-	}
-
-	void* producer(void *arg) {
-		testutil *t = (testutil *) arg;
-		Pipe *myPipe = (Pipe *) t->pipe;
-
-		Record temp;
-		int counter = 0;
-
-		DBFile dbfile;
-		dbfile.Open(rel->path());
-		cout << " producer: opened DBFile " << rel->path() << endl;
-		dbfile.MoveFirst();
-
-		while (dbfile.GetNext(temp) == 1) {
-			counter += 1;
-			if (counter % 100000 == 0) {
-				cerr << " producer: " << counter << endl;
-			}
-			myPipe->Insert(&temp);
-		}
-		dbfile.Close();
-		myPipe->ShutDown();
-
-		cout << " producer: inserted " << counter << " recs into the pipe\n";
-	}
-
-	void* consumer(void *arg) {
-		testutil *t = (testutil *) arg;
-		ComparisonEngine ceng;
-
-		DBFile dbfile;
-		char outfile[100];
-
-		if (t->write) {
-			sprintf(outfile, "%s.bigq", rel->path());
-			dbfile.Create(outfile, heap, NULL);
-		}
-
-		int err = 0;
-		int i = 0;
-
-		Record rec[2];
-		Record *last = NULL, *prev = NULL;
-
-		while (t->pipe->Remove(&rec[i % 2])) {
-			prev = last;
-			last = &rec[i % 2];
-			if (prev && last) {
-				if (ceng.Compare(prev, last, t->order) == 1) {
-					err++;
-				}
-				if (t->write) {
-					dbfile.Add(*prev);
-				}
-			}
-			if (t->print) {
-				last->Print(rel->schema());
-			}
-			i++;
-		}
-
-		cout << " consumer: removed " << i << " recs from the pipe\n";
-		if (t->write) {
-			if (last) {
-				dbfile.Add(*last);
-			}
-			cerr << " consumer: recs removed written out as heap DBFile at "
-					<< outfile << endl;
-			dbfile.Close();
-		}
-		cerr << " consumer: " << (i - err) << " recs out of " << i
-				<< " recs in sorted order \n";
-		if (err) {
-			cerr << " consumer: " << err << " recs failed sorted order test \n"
-					<< endl;
-		}
 	}
 };
 
@@ -144,19 +181,17 @@ TEST_F(BigQTest, Sort) {
 
 	// thread to dump data into the input pipe (for BigQ's consumption)
 	pthread_t thread1;
-	testutil tutil1 = { &input, &sortorder, false, false, this };
-	pthread_create(&thread1, NULL, &ProducerHelper, (void *) &tutil1);
-
+	testutil tutil = { &input, &output, &sortorder, rel, false, false };
+	if (option == 2) {
+		tutil.print = true;
+	} else if (option == 3) {
+		tutil.write = true;
+	}
+	TestFactory *obj = new Test1((void *) &tutil);
+	pthread_create(&thread1, NULL, &ProducerHelper, (void *) obj);
 	// thread to read sorted data from output pipe (dumped by BigQ)
 	pthread_t thread2;
-	testutil tutil2 = { &output, &sortorder, false, false, this };
-	if (option == 2) {
-		tutil2.print = true;
-	} else if (option == 3) {
-		tutil2.write = true;
-	}
-	pthread_create(&thread2, NULL, &ConsumerHelper, (void *) &tutil2);
-
+	pthread_create(&thread2, NULL, &ConsumerHelper, (void *) obj);
 	BigQ bq(input, output, sortorder, runlen);
 
 	pthread_join(thread1, NULL);

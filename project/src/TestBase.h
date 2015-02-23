@@ -10,7 +10,7 @@ extern struct AndList *final;
 
 // The fixture for testing class DBFile.
 class BaseTest: public testing::Test {
-protected:
+public:
 	class relation {
 	private:
 		char *rname;
@@ -63,6 +63,7 @@ protected:
 		}
 	};
 
+protected:
 	// Objects declared here can be used by all tests in the test case for DBFile.
 	char *dbfile_dir, *tpch_dir, *catalog_path; // full path of the catalog file
 	relation *rel;
