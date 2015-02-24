@@ -31,6 +31,9 @@ public:
 		Schema* schema() {
 			return rschema;
 		}
+		void setPath(char *path) {
+			sprintf(rpath, "%s", path);
+		}
 		void info() {
 			cout << " relation info\n";
 			cout << "\t name: " << name() << endl;
@@ -71,9 +74,9 @@ protected:
 	BaseTest() {
 		// You can do set-up work for each test here.
 		// You can do set-up work for each test here.
-		dbfile_dir = getenv("dbfile"); // dir where binary heap files should be stored
-		tpch_dir = getenv("tpch"); // dir where dbgen tpch files (extension *.tbl) can be found
-		catalog_path = "catalog"; // full path of the catalog file
+		dbfile_dir = getenv("dbfile");// dir where binary heap files should be stored
+		tpch_dir = getenv("tpch");// dir where dbgen tpch files (extension *.tbl) can be found
+		catalog_path = "catalog";		// full path of the catalog file
 	}
 
 	virtual ~BaseTest() {
