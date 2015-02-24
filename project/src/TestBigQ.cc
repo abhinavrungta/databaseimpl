@@ -36,9 +36,10 @@ public:
 
 class Test1: public TestFactory {
 public:
-	int counter = 0;
+	int counter;
 	Test1(void *params) :
 			TestFactory(params) {
+		counter = 0;
 	}
 	virtual ~Test1() {
 	}
@@ -115,9 +116,10 @@ public:
 
 class Test2: public TestFactory {
 public:
-	int counter = 0;
+	int counter;
 	Test2(void *params) :
 			TestFactory(params) {
+		counter = 0;
 	}
 	virtual ~Test2() {
 	}
