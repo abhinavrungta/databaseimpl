@@ -17,8 +17,8 @@ CPPFLAGS += -I$(FUSED_GTEST_DIR) -DGTEST_HAS_PTHREAD=0
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g
 
-TESTS=TestBigQ.cc
-OBJECTS_TESTS=$(TESTS:.cc=.o)
+A2TESTS=TestBigQ.cc
+A2OBJECTS_TESTS=$(A2TESTS:.cc=.o)
 A1TESTS=TestDBFile.cc
 A1OBJECTS_TESTS=$(A1TESTS:.cc=.o)
 
@@ -31,16 +31,16 @@ endif
 main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o
 	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o -ll
 	
-test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o test.o gtest-all.o gtest_main.o
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o $(OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
+a2test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o a2test.o gtest-all.o gtest_main.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o a2test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o $(A2OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
 
-test.o :
-	for dir in $(TESTS); do \
+a2test.o :
+	for dir in $(A2TESTS); do \
 		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $$dir; \
 	done
 
 a1test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o a1test.o gtest-all.o gtest_main.o
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o test Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o $(A1OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o a1test Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o $(A1OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
 
 a1test.o :
 	for dir in $(A1TESTS); do \
@@ -94,5 +94,6 @@ clean:
 	rm -f y.tab.c
 	rm -f lex.yy.c
 	rm -f y.tab.h
-	rm -rf test
+	rm -rf a1test
+	rm -rf a2test
 	rm -rf main

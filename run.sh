@@ -3,5 +3,5 @@ export dbfile=$(pwd)/dbfile/
 mkdir -p ${dbfile}
 export tpch=$(pwd)/db/
 cd project/src/
-make test
-./test "$@"
+make a2test
+./a2test "$@"
