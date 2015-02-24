@@ -1,8 +1,7 @@
 #include "BigQ.h"
 
-#include <pthread/pthread.h>
-#include <sys/_pthread/_pthread_t.h>
-#include <sys/_types/_time_t.h>
+#include <pthread.h>
+#include <time.h>
 #include <algorithm>
 #include <cstdio>
 #include <ctime>

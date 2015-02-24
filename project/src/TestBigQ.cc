@@ -1,5 +1,4 @@
-#include <pthread/pthread.h>
-#include <sys/_pthread/_pthread_t.h>
+#include <pthread.h>
 #include <cstdio>
 #include <iostream>
 
@@ -250,8 +249,17 @@ TEST_F(BigQTest, Sort) {
 }
 
 TEST_F(BigQTest, ReverseSort) {
-	int option = 3;
-	int runlen = 10;
+	int option = 0;
+	while (option < 1 || option > 3) {
+		cout << " select test option: \n";
+		cout << " \t 1. sort \n";
+		cout << " \t 2. sort + display \n";
+		cout << " \t 3. sort + write \n\t ";
+		cin >> option;
+	}
+
+	cout << "\t\n specify runlength:\n\t ";
+	cin >> runlen;
 	// sort order for records
 	OrderMaker sortorder;
 	rel->get_sort_order(sortorder);
@@ -280,8 +288,17 @@ TEST_F(BigQTest, ReverseSort) {
 }
 
 TEST_F(BigQTest, SortReverseInput) {
-	int option = 3;
-	int runlen = 20;
+	int option = 0;
+	while (option < 1 || option > 3) {
+		cout << " select test option: \n";
+		cout << " \t 1. sort \n";
+		cout << " \t 2. sort + display \n";
+		cout << " \t 3. sort + write \n\t ";
+		cin >> option;
+	}
+
+	cout << "\t\n specify runlength:\n\t ";
+	cin >> runlen;
 	// sort order for records
 	OrderMaker sortorder;
 	rel->get_sort_order(sortorder);
@@ -292,7 +309,12 @@ TEST_F(BigQTest, SortReverseInput) {
 
 	// thread to dump data into the input pipe (for BigQ's consumption)
 	pthread_t thread1;
-	testutil tutil = { &input, &output, &sortorder, rel, false, true };
+	testutil tutil = { &input, &output, &sortorder, rel, false, false };
+	if (option == 2) {
+		tutil.print = true;
+	} else if (option == 3) {
+		tutil.write = true;
+	}
 
 	TestFactory *obj = new Test2((void *) &tutil);
 	pthread_create(&thread1, NULL, &ProducerHelper, (void *) obj);
@@ -305,7 +327,6 @@ TEST_F(BigQTest, SortReverseInput) {
 	pthread_join(thread2, NULL);
 
 	// sort reversed file.
-	option = 1;
 	// update file name to read the rel from
 	char path[100];
 	sprintf(path, "%s.reverse.bigq", rel->path());
@@ -317,7 +338,11 @@ TEST_F(BigQTest, SortReverseInput) {
 	// thread to dump data into the input pipe (for BigQ's consumption)
 	pthread_t thread11;
 	testutil tutil1 = { &input1, &output1, &sortorder, rel, false, false };
-
+	if (option == 2) {
+		tutil1.print = true;
+	} else if (option == 3) {
+		tutil1.write = true;
+	}
 	TestFactory *obj1 = new Test1((void *) &tutil1);
 	pthread_create(&thread11, NULL, &ProducerHelper, (void *) obj1);
 	// thread to read sorted data from output pipe (dumped by BigQ)
@@ -330,7 +355,7 @@ TEST_F(BigQTest, SortReverseInput) {
 }
 
 TEST_F(BigQTest, SmallRunLength) {
-	int option = 1;
+	int option = 2;
 	runlen = 1;
 	// sort order for records
 	OrderMaker sortorder;
