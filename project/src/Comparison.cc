@@ -104,6 +104,21 @@ void OrderMaker::Print() {
 	}
 }
 
+string OrderMaker::ToString() {
+	ostringstream ss;
+	ss << numAtts << endl;
+	for (int i = 0; i < numAtts; i++) {
+		ss << whichAtts[i] << " ";
+		if (whichTypes[i] == Int)
+			ss << 0 << "\n";
+		else if (whichTypes[i] == Double)
+			ss << 1 << "\n";
+		else
+			ss << 2 << "\n";
+	}
+	return ss.str();
+}
+
 int CNF::GetSortOrders(OrderMaker &left, OrderMaker &right) {
 
 	// initialize the size of the OrderMakers

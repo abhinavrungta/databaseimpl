@@ -57,6 +57,8 @@ public:
 
 	// print to the screen
 	void Print();
+
+	string ToString();
 };
 
 class Record;
