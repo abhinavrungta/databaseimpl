@@ -1,17 +1,28 @@
+#ifndef GENERICDBFILE_H
+#define GENERICDBFILE_H
+
 #include "File.h"
 
 class GenericDBFile {
-private:
-	char* fileName;
+protected:
 	File myFile;
 	Page writePageBuf;
 	off_t currentPage;
 	Page readPageBuf;
+	int readCtr;
+	int mode;	// 0 for read, 1 for write.
+	bool readBufOutOfSync;
+	bool newPage;
 
 public:
-
+	char* fileName;
 	GenericDBFile() {
 		fileName = new char[100];
+		currentPage = 0;
+		readCtr = 0;
+		mode = 0;
+		readBufOutOfSync = false;
+		newPage = false;
 	}
 	virtual ~GenericDBFile() {
 		delete[] fileName;
@@ -29,3 +40,4 @@ public:
 	virtual int GetNext(Record &fetchme, CNF &cnf, Record &literal) = 0;
 
 };
+#endif

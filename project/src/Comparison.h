@@ -1,11 +1,9 @@
 #ifndef COMPARISON_H
 #define COMPARISON_H
 
-#include "Record.h"
-#include "Schema.h"
-#include "File.h"
 #include "Comparison.h"
-#include "ComparisonEngine.h"
+
+#include "Defs.h"
 
 // This stores an individual comparison that is part of a CNF
 class Comparison {
@@ -41,12 +39,11 @@ class OrderMaker {
 	friend class ComparisonEngine;
 	friend class CNF;
 
+public:
 	int numAtts;
 
 	int whichAtts[MAX_ANDS];
 	Type whichTypes[MAX_ANDS];
-
-public:
 
 	// creates an empty OrdermMaker
 	OrderMaker();
@@ -58,7 +55,7 @@ public:
 	// print to the screen
 	void Print();
 
-	string ToString();
+	const char* ToString();
 };
 
 class Record;

@@ -3,7 +3,9 @@
 #include <cstdio>
 #include <iostream>
 
+#include "Comparison.h"
 #include "ComparisonEngine.h"
+#include "Defs.h"
 #include "File.h"
 #include "Record.h"
 
@@ -19,7 +21,6 @@ int Sorted::Create(char *f_path, void *startup) {
 	try {
 		info = (SortInfo *) startup;
 		myFile.Open(0, f_path);
-		myFile.Close();
 		return 1;
 	} catch (int e) {
 		cout << "An exception occurred. " << e << '\n';
@@ -96,15 +97,13 @@ int Sorted::Close() {
 		cerr << "Open meta file error!" << endl;
 		return 0;
 	}
-	fprintf(meta, "%d\n", 1);
+	fprintf(meta, "%d\n", 0);
 	fprintf(meta, "%d\n", info->runLength);
-	fprintf(meta, "%s", info->myOrder->ToString().c_str());
+	fprintf(meta, "%s", info->myOrder->ToString());
 	fclose(meta);
 	delete[] metaFile;
-	if (myFile.Close()) {
-		return 1;
-	}
-	return 0;
+	myFile.Close();
+	return 1;
 }
 
 void Sorted::Add(Record &rec) {

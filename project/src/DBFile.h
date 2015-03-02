@@ -1,3 +1,6 @@
+#ifndef DBFILE_H
+#define DBFILE_H
+
 class CNF;
 class GenericDBFile;
 class Record;
@@ -27,3 +30,4 @@ public:
 	int GetNext(Record &fetchme, CNF &cnf, Record &literal);
 
 };
+#endif

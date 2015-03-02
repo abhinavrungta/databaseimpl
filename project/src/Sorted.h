@@ -1,3 +1,6 @@
+#ifndef SORTED_H
+#define SORTED_H
+
 #include "GenericDBFile.h"
 
 struct SortInfo {
@@ -23,3 +26,4 @@ public:
 	int GetNext(Record &fetchme, CNF &cnf, Record &literal);
 
 };
+#endif

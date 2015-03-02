@@ -1,3 +1,6 @@
+#ifndef HEAP_H
+#define HEAP_H
+
 #include "GenericDBFile.h"
 
 class Heap: public GenericDBFile {
@@ -18,3 +21,4 @@ public:
 	int GetNext(Record &fetchme, CNF &cnf, Record &literal);
 
 };
+#endif

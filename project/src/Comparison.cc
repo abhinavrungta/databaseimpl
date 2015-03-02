@@ -1,9 +1,13 @@
-#include <stdio.h>
-#include <iostream>
-#include <stdlib.h>
-#include <string.h>
-
 #include "Comparison.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+#include "Record.h"
+#include "Schema.h"
 
 Comparison::Comparison() {
 }
@@ -104,7 +108,7 @@ void OrderMaker::Print() {
 	}
 }
 
-string OrderMaker::ToString() {
+const char* OrderMaker::ToString() {
 	ostringstream ss;
 	ss << numAtts << endl;
 	for (int i = 0; i < numAtts; i++) {
@@ -116,7 +120,7 @@ string OrderMaker::ToString() {
 		else
 			ss << 2 << "\n";
 	}
-	return ss.str();
+	return ss.str().c_str();
 }
 
 int CNF::GetSortOrders(OrderMaker &left, OrderMaker &right) {

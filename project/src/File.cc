@@ -153,6 +153,8 @@ void Page::FromBinary(char *bits) {
 }
 
 File::File() {
+	curLength = 0;
+	myFilDes = -1;
 }
 
 File::~File() {

@@ -31,16 +31,16 @@ endif
 main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o
 	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o -ll
 	
-a2test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o a2test.o gtest-all.o gtest_main.o
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o a2test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o $(A2OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
+a2test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o y.tab.o lex.yy.o a2test.o gtest-all.o gtest_main.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o a2test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o y.tab.o lex.yy.o $(A2OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
 
 a2test.o :
 	for dir in $(A2TESTS); do \
 		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $$dir; \
 	done
 
-a1test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o a1test.o gtest-all.o gtest_main.o
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o a1test Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o y.tab.o lex.yy.o $(A1OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
+a1test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o Heap.o Sorted.o y.tab.o lex.yy.o a1test.o gtest-all.o gtest_main.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o a1test Record.o Comparison.o ComparisonEngine.o Schema.o File.o DBFile.o Pipe.o Heap.o Sorted.o y.tab.o lex.yy.o $(A1OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
 
 a1test.o :
 	for dir in $(A1TESTS); do \
@@ -64,6 +64,12 @@ BigQ.o: BigQ.cc
 	
 DBFile.o: DBFile.cc
 	$(CC) -g -c DBFile.cc
+
+Heap.o: Heap.cc
+	$(CC) -g -c Heap.cc
+
+Sorted.o: Sorted.cc
+	$(CC) -g -c Sorted.cc
 
 File.o: File.cc
 	$(CC) -g -c File.cc

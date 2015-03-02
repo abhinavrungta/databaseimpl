@@ -1,6 +1,9 @@
 #include "DBFile.h"
 
 #include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <iostream>
 
 #include "Heap.h"
 #include "Sorted.h"
@@ -20,7 +23,11 @@ int DBFile::Create(char *f_path, fType f_type, void *startup) {
 	} else if (f_type == sorted) {
 		internalVar = new Sorted();
 	}
-	return internalVar->Create(f_path, startup);
+	if (internalVar != NULL) {
+		strcpy(internalVar->fileName, f_path);
+	}
+	internalVar->Create(f_path, startup);
+	return internalVar->Close();
 }
 
 void DBFile::Load(Schema &f_schema, char *loadpath) {
