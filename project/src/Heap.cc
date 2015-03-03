@@ -27,19 +27,12 @@ void Heap::Load(Schema &f_schema, char *loadpath) {
 	// now open up the text file and start processing it
 	FILE *tableFile = fopen(loadpath, "r");
 	Record temp;
-	Page p;
 	// read in all of the records from the text file.
 	int counter = 0, i = 0;
 	while (temp.SuckNextRecord(&f_schema, tableFile) == 1) {
 		counter++;
-		if (!p.Append(&temp)) {
-			myFile.AddPage(&p, i++);
-			p.EmptyItOut();
-			p.Append(&temp);
-		}
+		Add(temp);
 	}
-	myFile.AddPage(&p, i++);
-	p.EmptyItOut();
 }
 
 int Heap::Open(char *f_path) {
@@ -53,11 +46,15 @@ int Heap::Open(char *f_path) {
 void Heap::MoveFirst() {
 	readPageCtr = -1;
 	readPageBuf.EmptyItOut();
-	//currentPage = 0;
-	//myFile.GetPage(&readPageBuf, currentPage);
 }
 
 int Heap::Close() {
+	if (mode) {
+		if (writePageBuf.GetLength() > 0) {
+			myFile.AddPage(&writePageBuf, writePageCtr);
+			writePageBuf.EmptyItOut();
+		}
+	}
 	char *metaFile = new char[100];
 	sprintf(metaFile, "%s.meta", fileName);
 	FILE *meta = fopen(metaFile, "w");
@@ -76,9 +73,8 @@ void Heap::Add(Record &rec) {
 	Record temp;
 	temp.Consume(&rec);
 	if (!mode) {
-		// if writePageBuf is empty, it was either written to file during a read operation or this is first Add operation.
+		// if switching from read mode, get last page.
 		if (myFile.GetLength() >= 2) {
-			// if this is not first Add operation, first get last page of file.
 			myFile.GetPage(&writePageBuf, writePageCtr);
 		}
 		mode = 1;
@@ -86,18 +82,19 @@ void Heap::Add(Record &rec) {
 	// Add page to file if buffer is full.
 	if (!writePageBuf.Append(&temp)) {
 		myFile.AddPage(&writePageBuf, writePageCtr);
+		// if overwriting page which is being read.
 		if (readPageCtr == writePageCtr) {
 			readBufOutOfSync = true;
 		}
-		cout << "Added to File" << endl;
 		writePageBuf.EmptyItOut();
 		writePageBuf.Append(&temp);
-		writePageCtr++;
+		writePageCtr++;	// increase the counter whenever record is appended to new page.
 	}
 }
 
 int Heap::GetNext(Record &fetchme) {
 	if (mode) {
+		// if switching from write mode, write the buffer to file.
 		myFile.AddPage(&writePageBuf, writePageCtr);
 		writePageBuf.EmptyItOut();
 		if (readPageCtr == writePageCtr) {
@@ -107,16 +104,17 @@ int Heap::GetNext(Record &fetchme) {
 	}
 	// read next record from page buffer.
 	if (!readPageBuf.GetFirst(&fetchme)) {
-		// if readBuf is not out of sync, check if current page is not last page, fetch next page.
+		// check if current page is not last page, fetch next page.
 		if (readPageCtr < myFile.GetLength() - 2) {
 			++readPageCtr;
 			myFile.GetPage(&readPageBuf, readPageCtr);
+			// if readBuf is out of sync, do not reset readCtr.
 			if (readBufOutOfSync) {
 				readBufOutOfSync = false;
 			} else {
 				readCtr = 0;
 			}
-			// if read buffer is out of sync, get the page again and fetch record.
+			// if read buffer is out of sync, fetch records uptil last ctr.
 			if (readCtr < readPageBuf.GetLength()) {
 				int i = 0;
 				while (i < readCtr) {
@@ -126,16 +124,12 @@ int Heap::GetNext(Record &fetchme) {
 				}
 			}
 			readPageBuf.GetFirst(&fetchme);
-			readCtr++;
-			cout << "Read 2 : " << readCtr << endl;
-			return 1;
 		} else {
 			return 0;
 		}
 	}
 // increment record counter in current buffer.
 	readCtr++;
-	cout << "Read 3 : " << readCtr << endl;
 	return 1;
 }
 
@@ -144,22 +138,12 @@ int Heap::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 // loop until we break; we break when a record is matched.
 	while (1) {
 		// read next record from page buffer.
-		if (!readPageBuf.GetFirst(&fetchme)) {
-			// if read page buffer is empty.
-			++readPageCtr;
-			if (readPageCtr + 1 < myFile.GetLength()) {
-				// get next page if available and read the record from there.
-				myFile.GetPage(&readPageBuf, readPageCtr);
-				readPageBuf.GetFirst(&fetchme);
-			} else {
-				// if reached the end of file. Do we need to check in the write buffer page also?
-				return 0;
-			}
+		if (!GetNext(fetchme)) {
+			return 0;
 		}
 		// check if record matches predicate;
 		if (comp.Compare(&fetchme, &literal, &cnf)) {
-			break;
+			return 1;
 		}
 	}
-	return 1;
 }

@@ -40,7 +40,6 @@ TEST_F(DBFileTest, Scan) {
 	int counter = 0;
 	while (dbfile.GetNext(temp) == 1) {
 		counter += 1;
-		//temp.Print(rel->schema());
 	}
 	cout << " scanned " << counter << " recs \n";
 	dbfile.Close();
@@ -113,8 +112,9 @@ TEST_F(DBFileTest, Next) {
 // verify that records added in same order as tpch file for heap filesystem, after filtering based on cnf
 TEST_F(DBFileTest, NextCnf) {
 	DBFile dbfile;
-
+	dbfile.Create(rel->path(), heap, NULL);
 	dbfile.Open(rel->path());
+
 	char tbl_path[100]; // construct path of the tpch flat text file
 	sprintf(tbl_path, "%s%s.tbl", tpch_dir, rel->name());
 	cout << " tpch file will be loaded from " << tbl_path << endl;
