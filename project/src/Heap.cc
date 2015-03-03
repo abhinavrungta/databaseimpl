@@ -44,12 +44,14 @@ void Heap::Load(Schema &f_schema, char *loadpath) {
 
 int Heap::Open(char *f_path) {
 	myFile.Open(1, f_path);
-	currentPage = -1;
+	readPageCtr = -1;
+	readPageBuf.EmptyItOut();
+	writePageCtr = myFile.GetLength() == 0 ? 0 : myFile.GetLength() - 2;
 	return 1;
 }
 
 void Heap::MoveFirst() {
-	currentPage = -1;
+	readPageCtr = -1;
 	readPageBuf.EmptyItOut();
 	//currentPage = 0;
 	//myFile.GetPage(&readPageBuf, currentPage);
@@ -73,77 +75,67 @@ int Heap::Close() {
 void Heap::Add(Record &rec) {
 	Record temp;
 	temp.Consume(&rec);
-	if (!writePageBuf.GetLength()) {
+	if (!mode) {
 		// if writePageBuf is empty, it was either written to file during a read operation or this is first Add operation.
 		if (myFile.GetLength() >= 2) {
 			// if this is not first Add operation, first get last page of file.
-			myFile.GetPage(&writePageBuf, myFile.GetLength() - 2);
-			if (currentPage == myFile.GetLength() - 2) {
-				// if currentPage(current Read Page) is the same as this, set flag that readBuffer is out of sync.
-				readBufOutOfSync = true;
-			}
+			myFile.GetPage(&writePageBuf, writePageCtr);
 		}
+		mode = 1;
 	}
-	int pos = myFile.GetLength() == 0 ? 0 : myFile.GetLength() - 2;
 	// Add page to file if buffer is full.
 	if (!writePageBuf.Append(&temp)) {
-		myFile.AddPage(&writePageBuf, pos);
+		myFile.AddPage(&writePageBuf, writePageCtr);
+		if (readPageCtr == writePageCtr) {
+			readBufOutOfSync = true;
+		}
+		cout << "Added to File" << endl;
 		writePageBuf.EmptyItOut();
 		writePageBuf.Append(&temp);
-		newPage = true;
+		writePageCtr++;
 	}
 }
 
 int Heap::GetNext(Record &fetchme) {
-// read next record from page buffer.
+	if (mode) {
+		myFile.AddPage(&writePageBuf, writePageCtr);
+		writePageBuf.EmptyItOut();
+		if (readPageCtr == writePageCtr) {
+			readBufOutOfSync = true;
+		}
+		mode = 0;
+	}
+	// read next record from page buffer.
 	if (!readPageBuf.GetFirst(&fetchme)) {
-		// if read buffer is out of sync, get the page again and fetch record.
-		if (readBufOutOfSync) {
-			// if it is the last page, we need to
-			if ((currentPage == myFile.GetLength() - 2) && !newPage) {
-				myFile.AddPage(&writePageBuf, currentPage);
-				writePageBuf.EmptyItOut();
+		// if readBuf is not out of sync, check if current page is not last page, fetch next page.
+		if (readPageCtr < myFile.GetLength() - 2) {
+			++readPageCtr;
+			myFile.GetPage(&readPageBuf, readPageCtr);
+			if (readBufOutOfSync) {
+				readBufOutOfSync = false;
+			} else {
+				readCtr = 0;
 			}
-			myFile.GetPage(&readPageBuf, currentPage);
-			readBufOutOfSync = false;
-			// if there are records in the current page which had not been read, fetch that record.
+			// if read buffer is out of sync, get the page again and fetch record.
 			if (readCtr < readPageBuf.GetLength()) {
 				int i = 0;
 				while (i < readCtr) {
 					readPageBuf.GetFirst(&fetchme);
 					i++;
+					cout << "Read 1 : " << readCtr << endl;
 				}
-				readPageBuf.GetFirst(&fetchme);
-				readCtr++;
-				return 1;
 			}
-		}
-		// if readBuf is not out of sync, check if current page is not last page, fetch next page.
-		if (currentPage < myFile.GetLength() - 2) {
-			++currentPage;
-			myFile.GetPage(&readPageBuf, currentPage);
 			readPageBuf.GetFirst(&fetchme);
-			readCtr = 1;
+			readCtr++;
+			cout << "Read 2 : " << readCtr << endl;
 			return 1;
 		} else {
-			// if last page is reached, check if there is anything in the writebuf.
-			if (writePageBuf.GetLength()) {
-				int pos = myFile.GetLength() == 0 ? 0 : myFile.GetLength() - 1;
-				myFile.AddPage(&writePageBuf, pos);
-				writePageBuf.EmptyItOut();
-				newPage = false;
-				++currentPage;
-				// get next page if available and read the record from there.
-				myFile.GetPage(&readPageBuf, currentPage);
-				readPageBuf.GetFirst(&fetchme);
-				readCtr = 1;
-				return 1;
-			}
 			return 0;
 		}
 	}
-	// increment record counter in current buffer.
+// increment record counter in current buffer.
 	readCtr++;
+	cout << "Read 3 : " << readCtr << endl;
 	return 1;
 }
 
@@ -154,10 +146,10 @@ int Heap::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 		// read next record from page buffer.
 		if (!readPageBuf.GetFirst(&fetchme)) {
 			// if read page buffer is empty.
-			++currentPage;
-			if (currentPage + 1 < myFile.GetLength()) {
+			++readPageCtr;
+			if (readPageCtr + 1 < myFile.GetLength()) {
 				// get next page if available and read the record from there.
-				myFile.GetPage(&readPageBuf, currentPage);
+				myFile.GetPage(&readPageBuf, readPageCtr);
 				readPageBuf.GetFirst(&fetchme);
 			} else {
 				// if reached the end of file. Do we need to check in the write buffer page also?

@@ -91,11 +91,10 @@ TEST_F(DBFileTest, Next) {
 	DBFile dbfile;
 	dbfile.Open(rel->path());
 
-	Schema lineitem("catalog", "lineitem");
 	// grow the CNF expression from the parse tree
 	CNF myComparison;
 	Record literal;
-	myComparison.GrowFromParseTree(final, &lineitem, literal);
+	myComparison.GrowFromParseTree(final, rel->schema(), literal);
 
 	char tbl_path[100]; // construct path of the tpch flat text file
 	sprintf(tbl_path, "%s%s.tbl", tpch_dir, rel->name());
@@ -103,7 +102,7 @@ TEST_F(DBFileTest, Next) {
 	FILE *tableFile = fopen(tbl_path, "r");
 
 	Record raw;
-	while (raw.SuckNextRecord(&lineitem, tableFile) == 1) {
+	while (raw.SuckNextRecord(rel->schema(), tableFile) == 1) {
 		Record db;
 		dbfile.GetNext(db);
 		ASSERT_TRUE(RecordCompare(&raw, &db));

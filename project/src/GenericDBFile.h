@@ -7,22 +7,22 @@ class GenericDBFile {
 protected:
 	File myFile;
 	Page writePageBuf;
-	off_t currentPage;
+	int writePageCtr;
 	Page readPageBuf;
+	off_t readPageCtr;
 	int readCtr;
 	int mode;	// 0 for read, 1 for write.
 	bool readBufOutOfSync;
-	bool newPage;
 
 public:
 	char* fileName;
 	GenericDBFile() {
 		fileName = new char[100];
-		currentPage = 0;
+		readPageCtr = 0;
+		writePageCtr = 0;
 		readCtr = 0;
 		mode = 0;
 		readBufOutOfSync = false;
-		newPage = false;
 	}
 	virtual ~GenericDBFile() {
 		delete[] fileName;

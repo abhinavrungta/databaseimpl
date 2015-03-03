@@ -80,13 +80,13 @@ int Sorted::Open(char *f_path) {
 	delete[] metaFile;
 
 	myFile.Open(1, f_path);
-	currentPage = -1;
+	readPageCtr = -1;
 	return 1;
 }
 
 void Sorted::MoveFirst() {
-	currentPage = 0;
-	myFile.GetPage(&readPageBuf, currentPage);
+	readPageCtr = 0;
+	myFile.GetPage(&readPageBuf, readPageCtr);
 }
 
 int Sorted::Close() {
@@ -135,10 +135,10 @@ int Sorted::GetNext(Record &fetchme) {
 	// read next record from page buffer.
 	if (!readPageBuf.GetFirst(&fetchme)) {
 		// if read page buffer is empty.
-		++currentPage;
-		if (currentPage + 1 < myFile.GetLength()) {
+		++readPageCtr;
+		if (readPageCtr + 1 < myFile.GetLength()) {
 			// get next page if available and read the record from there.
-			myFile.GetPage(&readPageBuf, currentPage);
+			myFile.GetPage(&readPageBuf, readPageCtr);
 			readPageBuf.GetFirst(&fetchme);
 		} else {
 			// if reached the end of file. Do we need to check in the write buffer page also?
@@ -155,10 +155,10 @@ int Sorted::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 		// read next record from page buffer.
 		if (!readPageBuf.GetFirst(&fetchme)) {
 			// if read page buffer is empty.
-			++currentPage;
-			if (currentPage + 1 < myFile.GetLength()) {
+			++readPageCtr;
+			if (readPageCtr + 1 < myFile.GetLength()) {
 				// get next page if available and read the record from there.
-				myFile.GetPage(&readPageBuf, currentPage);
+				myFile.GetPage(&readPageBuf, readPageCtr);
 				readPageBuf.GetFirst(&fetchme);
 			} else {
 				// if reached the end of file. Do we need to check in the write buffer page also?
