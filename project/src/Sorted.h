@@ -2,6 +2,7 @@
 #define SORTED_H
 
 #include "GenericDBFile.h"
+#include "BigQ.h"
 
 struct SortInfo {
 	OrderMaker *myOrder;
@@ -10,6 +11,14 @@ struct SortInfo {
 
 class Sorted: public GenericDBFile {
 	SortInfo *info;
+	BigQ *bigQ;
+	Pipe *input, *output;
+	Page mergePageBuf;
+	int mergePageCtr;
+	File tmpFile;
+	void MergeBigQ();
+	void addToFile(Record &temp);
+
 public:
 	Sorted();
 	~Sorted();

@@ -108,7 +108,7 @@ void OrderMaker::Print() {
 	}
 }
 
-const char* OrderMaker::ToString() {
+string OrderMaker::ToString() {
 	ostringstream ss;
 	ss << numAtts << endl;
 	for (int i = 0; i < numAtts; i++) {
@@ -120,17 +120,17 @@ const char* OrderMaker::ToString() {
 		else
 			ss << 2 << "\n";
 	}
-	return ss.str().c_str();
+	return ss.str();
 }
 
 int CNF::GetSortOrders(OrderMaker &left, OrderMaker &right) {
 
-	// initialize the size of the OrderMakers
+// initialize the size of the OrderMakers
 	left.numAtts = 0;
 	right.numAtts = 0;
 
-	// loop through all of the disjunctions in the CNF and find those
-	// that are acceptable for use in a sort ordering
+// loop through all of the disjunctions in the CNF and find those
+// that are acceptable for use in a sort ordering
 	for (int i = 0; i < numAnds; i++) {
 
 		// if we don't have a disjunction of length one, then it
@@ -205,10 +205,10 @@ void CNF::Print() {
 void AddLitToFile(int &numFieldsInLiteral, FILE *outRecFile,
 		FILE *outSchemaFile, char *value, Type myType) {
 
-	// first write out the new record field
+// first write out the new record field
 	fprintf(outRecFile, "%s|", value);
 
-	// now write out the new schema field
+// now write out the new schema field
 	if (myType == Int) {
 		fprintf(outSchemaFile, "att%d Int\n", numFieldsInLiteral);
 	} else if (myType == Double) {
@@ -220,7 +220,7 @@ void AddLitToFile(int &numFieldsInLiteral, FILE *outRecFile,
 		exit(1);
 	}
 
-	// and note that we have another field
+// and note that we have another field
 	numFieldsInLiteral++;
 }
 
@@ -229,19 +229,19 @@ void CNF::GrowFromParseTree(struct AndList *parseTree, Schema *leftSchema,
 
 	CNF &cnf = *this;
 
-	// as kind of a hack, the literal record is built up insiide of a text file,
-	// where it will be read in from subsequently
+// as kind of a hack, the literal record is built up insiide of a text file,
+// where it will be read in from subsequently
 	FILE *outRecFile = fopen("sdafdsfFFDSDA", "w");
 
-	// also as kind of a hack, the schema for the literal record is built up
-	// inside of a text file, where it will also be read from subsequently
+// also as kind of a hack, the schema for the literal record is built up
+// inside of a text file, where it will also be read from subsequently
 	FILE *outSchemaFile = fopen("hkljdfgkSDFSDF", "w");
 	fprintf(outSchemaFile, "BEGIN\ntempSchema\nwherever\n");
 
-	// this tells us the size of the literal record
+// this tells us the size of the literal record
 	int numFieldsInLiteral = 0;
 
-	// now we go through and build the comparison structure
+// now we go through and build the comparison structure
 	for (int whichAnd = 0; 1; whichAnd++, parseTree = parseTree->rightAnd) {
 
 		// see if we have run off of the end of all of the ANDs
@@ -292,7 +292,7 @@ void CNF::GrowFromParseTree(struct AndList *parseTree, Schema *leftSchema,
 					exit(1);
 				}
 
-				// the next thing is to see if we have a string; if so, add it to the 
+				// the next thing is to see if we have a string; if so, add it to the
 				// literal record that stores all of the comparison values
 			} else if (myOr->left->left->code == STRING) {
 
@@ -352,7 +352,7 @@ void CNF::GrowFromParseTree(struct AndList *parseTree, Schema *leftSchema,
 					exit(1);
 				}
 
-				// the next thing is to see if we have a string; if so, add it to the 
+				// the next thing is to see if we have a string; if so, add it to the
 				// literal record that stores all of the comparison values
 			} else if (myOr->left->right->code == STRING) {
 
@@ -414,22 +414,22 @@ void CNF::GrowFromParseTree(struct AndList *parseTree, Schema *leftSchema,
 		}
 	}
 
-	// the very last thing is to set up the literal record; first close the
-	// file where its information has been stored
+// the very last thing is to set up the literal record; first close the
+// file where its information has been stored
 	fclose(outRecFile);
 	fprintf(outSchemaFile, "END\n");
 	fclose(outSchemaFile);
 
-	// and open up the record file
+// and open up the record file
 	outRecFile = fopen("sdafdsfFFDSDA", "r");
 
-	// read in the record's schema
+// read in the record's schema
 	Schema mySchema("hkljdfgkSDFSDF", "tempSchema");
 
-	// and get the record
+// and get the record
 	literal.SuckNextRecord(&mySchema, outRecFile);
 
-	// close the record file
+// close the record file
 	fclose(outRecFile);
 
 	remove("sdafdsfFFDSDA");
@@ -442,19 +442,19 @@ void CNF::GrowFromParseTree(struct AndList *parseTree, Schema *mySchema,
 
 	CNF &cnf = *this;
 
-	// as kind of a hack, the literal record is built up insiide of a text file,
-	// where it will be read in from subsequently
+// as kind of a hack, the literal record is built up insiide of a text file,
+// where it will be read in from subsequently
 	FILE *outRecFile = fopen("sdafdsfFFDSDA", "w");
 
-	// also as kind of a hack, the schema for the literal record is built up
-	// inside of a text file, where it will also be read from subsequently
+// also as kind of a hack, the schema for the literal record is built up
+// inside of a text file, where it will also be read from subsequently
 	FILE *outSchemaFile = fopen("hkljdfgkSDFSDF", "w");
 	fprintf(outSchemaFile, "BEGIN\ntempSchema\nwherever\n");
 
-	// this tells us the size of the literal record
+// this tells us the size of the literal record
 	int numFieldsInLiteral = 0;
 
-	// now we go through and build the comparison structure
+// now we go through and build the comparison structure
 	for (int whichAnd = 0; 1; whichAnd++, parseTree = parseTree->rightAnd) {
 
 		// see if we have run off of the end of all of the ANDs
@@ -498,7 +498,7 @@ void CNF::GrowFromParseTree(struct AndList *parseTree, Schema *mySchema,
 					exit(1);
 				}
 
-				// the next thing is to see if we have a string; if so, add it to the 
+				// the next thing is to see if we have a string; if so, add it to the
 				// literal record that stores all of the comparison values
 			} else if (myOr->left->left->code == STRING) {
 
@@ -551,7 +551,7 @@ void CNF::GrowFromParseTree(struct AndList *parseTree, Schema *mySchema,
 					exit(1);
 				}
 
-				// the next thing is to see if we have a string; if so, add it to the 
+				// the next thing is to see if we have a string; if so, add it to the
 				// literal record that stores all of the comparison values
 			} else if (myOr->left->right->code == STRING) {
 
@@ -613,22 +613,22 @@ void CNF::GrowFromParseTree(struct AndList *parseTree, Schema *mySchema,
 		}
 	}
 
-	// the very last thing is to set up the literal record; first close the
-	// file where its information has been stored
+// the very last thing is to set up the literal record; first close the
+// file where its information has been stored
 	fclose(outRecFile);
 	fprintf(outSchemaFile, "END\n");
 	fclose(outSchemaFile);
 
-	// and open up the record file
+// and open up the record file
 	outRecFile = fopen("sdafdsfFFDSDA", "r");
 
-	// read in the record's schema
+// read in the record's schema
 	Schema outSchema("hkljdfgkSDFSDF", "tempSchema");
 
-	// and get the record
+// and get the record
 	literal.SuckNextRecord(&outSchema, outRecFile);
 
-	// close the record file
+// close the record file
 	fclose(outRecFile);
 
 	remove("sdafdsfFFDSDA");

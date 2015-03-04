@@ -2,8 +2,9 @@
 #define COMPARISON_H
 
 #include "Comparison.h"
-
 #include "Defs.h"
+#include <string>
+using namespace std;
 
 // This stores an individual comparison that is part of a CNF
 class Comparison {
@@ -55,7 +56,7 @@ public:
 	// print to the screen
 	void Print();
 
-	const char* ToString();
+	string ToString();
 };
 
 class Record;
