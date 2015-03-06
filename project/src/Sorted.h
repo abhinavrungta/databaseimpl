@@ -16,8 +16,12 @@ class Sorted: public GenericDBFile {
 	Page mergePageBuf;
 	int mergePageCtr;
 	File tmpFile;
+	bool queryChanged;
+	OrderMaker *queryOrder;
+
 	void MergeBigQ();
 	void addToFile(Record &temp);
+	int BinarySearch(int low, int high, OrderMaker *order, Record &literal);
 
 public:
 	Sorted();

@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <iostream>
 #include <sstream>
-#include <string>
 
 #include "Record.h"
 #include "Schema.h"
@@ -635,3 +634,49 @@ void CNF::GrowFromParseTree(struct AndList *parseTree, Schema *mySchema,
 	remove("hkljdfgkSDFSDF");
 }
 
+OrderMaker* CNF::getQueryOrder(OrderMaker &sortOrder) {
+	OrderMaker *queryOrder = new OrderMaker();
+	// loop thru all attributes of the sortOrder.
+	for (int i = 0; i < sortOrder.numAtts; i++) {
+		bool match = false;
+		int j = 0;
+		// loop thru all the conjunctions. (AND) until u find a match.
+		while ((j < numAnds) && !match) {
+			// check if the disjunction is the only attribute and operator is Equals.
+			if (orLens[j] == 1 && (orList[j][0].op == Equals)) {
+				// check if comparison is with a literal value.
+				if ((orList[j][0].operand1 != Literal)
+						&& (orList[j][0].operand2 == Literal)) {
+					// when operand 2 is literal value and operand 1 is attribute, match with attribute 1.
+					if ((sortOrder.whichAtts[i] == orList[j][0].whichAtt1)
+							&& (sortOrder.whichTypes[i] == orList[j][0].attType)) {
+						queryOrder->whichAtts[queryOrder->numAtts] =
+								sortOrder.whichAtts[i];
+						queryOrder->whichTypes[queryOrder->numAtts++] =
+								sortOrder.whichTypes[i];
+						match = true;
+					}
+				} else if ((orList[j][0].operand1 == Literal)
+						&& (orList[j][0].operand2 != Literal)) {
+					// when operand 1 is literal value and operand 2 is attribute, match with attribute 2.
+					if ((sortOrder.whichAtts[i] == orList[j][0].whichAtt2)
+							&& (sortOrder.whichTypes[i] == orList[j][0].attType)) {
+						queryOrder->whichAtts[queryOrder->numAtts] =
+								sortOrder.whichAtts[i];
+						queryOrder->whichTypes[queryOrder->numAtts++] =
+								sortOrder.whichTypes[i];
+						match = true;
+					}
+				}
+			}
+			j++;
+		}
+		if (!match)
+			break;
+	}
+	if (!queryOrder->numAtts) {
+		delete queryOrder;
+		return NULL;
+	}
+	return queryOrder;
+}

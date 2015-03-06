@@ -15,12 +15,12 @@ Sorted::Sorted() {
 	output = NULL;
 	bigQ = NULL;
 	mergePageCtr = 0;
+	queryChanged = true;
+	queryOrder = NULL;
 }
 
 Sorted::~Sorted() {
 	delete info;
-	delete input;
-	delete output;
 }
 
 int Sorted::Create(char *f_path, void *startup) {
@@ -88,6 +88,7 @@ int Sorted::Open(char *f_path) {
 void Sorted::MoveFirst() {
 	readPageCtr = -1;
 	readPageBuf.EmptyItOut();
+	queryChanged = true;
 }
 
 int Sorted::Close() {
@@ -113,6 +114,7 @@ int Sorted::Close() {
 }
 
 void Sorted::Add(Record &rec) {
+	queryChanged = true;
 	Record temp;
 	temp.Consume(&rec);
 	if (!mode) {
@@ -133,6 +135,7 @@ int Sorted::GetNext(Record &fetchme) {
 		mode = 0;
 		// if switching from write mode, close input pipe and merge bigQ with already sorted file.
 		MergeBigQ();
+		this->MoveFirst();
 	}
 	// read next record from page buffer.
 	if (!readPageBuf.GetFirst(&fetchme)) {
@@ -140,43 +143,72 @@ int Sorted::GetNext(Record &fetchme) {
 		if (readPageCtr < myFile.GetLength() - 2) {
 			++readPageCtr;
 			myFile.GetPage(&readPageBuf, readPageCtr);
-			// if readBuf is out of sync, do not reset readCtr.
-			if (readBufOutOfSync) {
-				readBufOutOfSync = false;
-			} else {
-				readCtr = 0;
-			}
-			// if read buffer is out of sync, fetch records uptil last ctr.
-			if (readCtr < readPageBuf.GetLength()) {
-				int i = 0;
-				while (i < readCtr) {
-					readPageBuf.GetFirst(&fetchme);
-					i++;
-				}
-			}
 			readPageBuf.GetFirst(&fetchme);
 		} else {
 			return 0;
 		}
 	}
-// increment record counter in current buffer.
-	readCtr++;
 	return 1;
 }
 
 int Sorted::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
+	if (mode) {
+		// if switching from write mode, close input pipe and merge bigQ with already sorted file.
+		mode = 0;
+		MergeBigQ();
+		MoveFirst();
+	}
 	ComparisonEngine comp;
-// loop until we break; we break when a record is matched.
-	while (1) {
-		// read next record from page buffer.
-		if (!GetNext(fetchme)) {
+	// construct QueryOrder
+	if (queryChanged) {
+		queryChanged = false;
+		queryOrder = cnf.getQueryOrder(*(info->myOrder));
+		// do binary search to get first matching record.
+		int low = readPageCtr;
+		int high = myFile.GetLength() - 2;
+		int pageNo = BinarySearch(low, high, queryOrder, literal); // returns page no with matching queryorder.
+
+		// if no possible match for given queryOrder.
+		if (pageNo == -1) {
 			return 0;
 		}
-		// check if record matches predicate;
-		if (comp.Compare(&fetchme, &literal, &cnf)) {
+
+		// load the searched page if not equal to page in buffer.
+		if (pageNo != readPageCtr) {
+			readPageBuf.EmptyItOut();
+			myFile.GetPage(&readPageBuf, pageNo);
+			readPageCtr = pageNo;
+		}
+
+		// get the first probable record which matches query order in current page or next one.
+		while (GetNext(fetchme) && readPageCtr <= pageNo + 1) {
+			if (comp.Compare(&fetchme, &literal, queryOrder) == 0)
+				break;
+		}
+
+		//if the first record matches the CNF also, return 1.
+		if (comp.Compare(&fetchme, &literal, &cnf))
 			return 1;
+	}
+	if (queryOrder) {
+		// else, sequentially scan for matching record.
+		while (GetNext(fetchme)) {
+			// at this point if queryOrder is not matching, return 0;
+			if (comp.Compare(&fetchme, &literal, queryOrder) != 0) {
+				return 0;
+			} else {
+				if (comp.Compare(&fetchme, &literal, &cnf))
+					return 1; //found the right record, return 1.
+			}
+		}
+	} else {
+		//no query order constructed
+		while (GetNext(fetchme)) {
+			if (comp.Compare(&fetchme, &literal, &cnf))
+				return 1;
 		}
 	}
+	return 0;
 }
 
 void Sorted::addToFile(Record &temp) {
@@ -193,9 +225,11 @@ void Sorted::MergeBigQ() {
 	Record *rec1 = new Record;
 	Record *rec2 = new Record;
 
-	tmpFile.Open(0, "tmpFile");
+	char *tmpName = new char[100];
+	sprintf(tmpName, "%s.tmp", this->fileName);
+	tmpFile.Open(0, tmpName);
 	tmpFile.Close();
-	tmpFile.Open(1, "tmpFile");
+	tmpFile.Open(1, tmpName);
 	mergePageBuf.EmptyItOut();
 	mergePageCtr = 0;
 	bool flagFile = false;
@@ -236,23 +270,57 @@ void Sorted::MergeBigQ() {
 		} while (this->GetNext(*rec2));
 	}
 
-//add the buffer to file if needed
+	// add the buffer to file if needed
 	if (mergePageBuf.GetLength() > 0) {
 		tmpFile.AddPage(&mergePageBuf, mergePageCtr);
 		mergePageBuf.EmptyItOut();
 	}
 
-//clean up
+	// clean up
 	delete rec1;
 	delete rec2;
+	delete input;
+	delete output;
 
 	myFile.Close();
 	tmpFile.Close();
 	if (remove(fileName)) {
 		return;
 	}
-	if (rename("tmpFile", fileName)) {
+	if (rename(tmpName, fileName)) {
 		return;
 	}
 	myFile.Open(1, fileName);
+}
+
+int Sorted::BinarySearch(int low, int high, OrderMaker *order,
+		Record &literal) {
+	ComparisonEngine comp;
+	if (high < low)
+		return -1;
+	if (high == low)
+		return low;
+
+	Page *tmpPage = new Page;
+	Record *tmpRecord = new Record;
+	int mid = (int) (high + low) / 2;
+	myFile.GetPage(tmpPage, mid);
+	tmpPage->GetFirst(tmpRecord);
+	int res = comp.Compare(tmpRecord, &literal, order);
+
+	delete tmpPage;
+	delete tmpRecord;
+
+	if (res == -1) {
+		if (low == mid)
+			// to avoid recursion.
+			return mid;
+		else
+			return BinarySearch(mid, high, order, literal);
+	} else if (res == 0) {
+		if (low == mid)
+			return low;	// to avoid return of -1 in successive call;
+		return BinarySearch(low, mid - 1, order, literal);// go here to find the first page with equal record.
+	} else
+		return BinarySearch(low, mid - 1, order, literal);
 }
