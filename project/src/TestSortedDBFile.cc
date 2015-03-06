@@ -121,7 +121,8 @@ TEST_F(SortedDBFileTest, Query) {
 	Record temp;
 
 	int cnt = 0;
-	while (dbfile.GetNext(temp, cnf, literal) && ++cnt) {
+	while (dbfile.GetNext(temp, cnf, literal)) {
+		++cnt;
 		temp.Print(rel->schema());
 		if (cnt % 10000 == 0) {
 			cerr << ".";

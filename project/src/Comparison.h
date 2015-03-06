@@ -96,7 +96,7 @@ public:
 	void GrowFromParseTree(struct AndList *parseTree, Schema *mySchema,
 			Record &literal);
 
-	OrderMaker* getQueryOrder(OrderMaker &sortOrder);
+	OrderMaker* getQueryOrder(OrderMaker &sortOrder, OrderMaker** literalOrder);
 };
 
 #endif

@@ -17,6 +17,7 @@ Sorted::Sorted() {
 	mergePageCtr = 0;
 	queryChanged = true;
 	queryOrder = NULL;
+	literalOrder = NULL;
 }
 
 Sorted::~Sorted() {
@@ -162,39 +163,53 @@ int Sorted::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 	// construct QueryOrder
 	if (queryChanged) {
 		queryChanged = false;
-		queryOrder = cnf.getQueryOrder(*(info->myOrder));
-		// do binary search to get first matching record.
-		int low = readPageCtr;
-		int high = myFile.GetLength() - 2;
-		int pageNo = BinarySearch(low, high, queryOrder, literal); // returns page no with matching queryorder.
+		queryOrder = cnf.getQueryOrder(*(info->myOrder), &literalOrder);
+		if (queryOrder != NULL) {
+			cout << "Doing Binary Search";
+			// do binary search to get first matching record.
+			int low = readPageCtr;
+			if (readPageCtr == -1) {
+				readPageCtr = 0;
+				readPageBuf.EmptyItOut();
+				myFile.GetPage(&readPageBuf, readPageCtr);
+				low = readPageCtr;
+			}
+			low = 0;
+			int high = myFile.GetLength() - 2;
+			int pageNo = BinarySearch(low, high, queryOrder, literalOrder,
+					literal); // returns page no with matching queryorder.
 
-		// if no possible match for given queryOrder.
-		if (pageNo == -1) {
-			return 0;
+			// if no possible match for given queryOrder.
+			if (pageNo == -1) {
+				cout << "Page Not found";
+				return 0;
+			}
+			cout << "Page NO " << pageNo;
+			// load the searched page if not equal to page in buffer.
+			if (pageNo != readPageCtr) {
+				readPageBuf.EmptyItOut();
+				myFile.GetPage(&readPageBuf, pageNo);
+				readPageCtr = pageNo;
+			}
+
+			// get the first probable record which matches query order in current page or next one.
+			while (GetNext(fetchme) && readPageCtr <= pageNo + 1) {
+				if (comp.Compare(&fetchme, queryOrder, &literal, literalOrder)
+						== 0)
+					break;
+			}
+
+			//if the first record matches the CNF also, return 1.
+			if (comp.Compare(&fetchme, &literal, &cnf))
+				return 1;
 		}
-
-		// load the searched page if not equal to page in buffer.
-		if (pageNo != readPageCtr) {
-			readPageBuf.EmptyItOut();
-			myFile.GetPage(&readPageBuf, pageNo);
-			readPageCtr = pageNo;
-		}
-
-		// get the first probable record which matches query order in current page or next one.
-		while (GetNext(fetchme) && readPageCtr <= pageNo + 1) {
-			if (comp.Compare(&fetchme, &literal, queryOrder) == 0)
-				break;
-		}
-
-		//if the first record matches the CNF also, return 1.
-		if (comp.Compare(&fetchme, &literal, &cnf))
-			return 1;
 	}
 	if (queryOrder) {
 		// else, sequentially scan for matching record.
 		while (GetNext(fetchme)) {
 			// at this point if queryOrder is not matching, return 0;
-			if (comp.Compare(&fetchme, &literal, queryOrder) != 0) {
+			if (comp.Compare(&fetchme, queryOrder, &literal, literalOrder)
+					!= 0) {
 				return 0;
 			} else {
 				if (comp.Compare(&fetchme, &literal, &cnf))
@@ -294,8 +309,9 @@ void Sorted::MergeBigQ() {
 }
 
 int Sorted::BinarySearch(int low, int high, OrderMaker *order,
-		Record &literal) {
+		OrderMaker *lorder, Record &literal) {
 	ComparisonEngine comp;
+	cout << "Low " << low << " High " << high << endl;
 	if (high < low)
 		return -1;
 	if (high == low)
@@ -304,23 +320,24 @@ int Sorted::BinarySearch(int low, int high, OrderMaker *order,
 	Page *tmpPage = new Page;
 	Record *tmpRecord = new Record;
 	int mid = (int) (high + low) / 2;
+	cout << "Mid " << mid;
 	myFile.GetPage(tmpPage, mid);
 	tmpPage->GetFirst(tmpRecord);
-	int res = comp.Compare(tmpRecord, &literal, order);
-
+	int res = comp.Compare(tmpRecord, order, &literal, lorder);
+	cout << "res " << res;
 	delete tmpPage;
 	delete tmpRecord;
 
-	if (res == -1) {
+	if (res < 0) {
 		if (low == mid)
 			// to avoid recursion.
 			return mid;
 		else
-			return BinarySearch(mid, high, order, literal);
+			return BinarySearch(mid, high, order, lorder, literal);
 	} else if (res == 0) {
 		if (low == mid)
 			return low;	// to avoid return of -1 in successive call;
-		return BinarySearch(low, mid - 1, order, literal);// go here to find the first page with equal record.
+		return BinarySearch(low, mid - 1, order, lorder, literal);// go here to find the first page with equal record.
 	} else
-		return BinarySearch(low, mid - 1, order, literal);
+		return BinarySearch(low, mid - 1, order, lorder, literal);
 }

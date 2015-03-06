@@ -634,8 +634,10 @@ void CNF::GrowFromParseTree(struct AndList *parseTree, Schema *mySchema,
 	remove("hkljdfgkSDFSDF");
 }
 
-OrderMaker* CNF::getQueryOrder(OrderMaker &sortOrder) {
+OrderMaker* CNF::getQueryOrder(OrderMaker &sortOrder,
+		OrderMaker** literalOrder) {
 	OrderMaker *queryOrder = new OrderMaker();
+	(*(literalOrder)) = new OrderMaker();
 	// loop thru all attributes of the sortOrder.
 	for (int i = 0; i < sortOrder.numAtts; i++) {
 		bool match = false;
@@ -651,9 +653,13 @@ OrderMaker* CNF::getQueryOrder(OrderMaker &sortOrder) {
 					if ((sortOrder.whichAtts[i] == orList[j][0].whichAtt1)
 							&& (sortOrder.whichTypes[i] == orList[j][0].attType)) {
 						queryOrder->whichAtts[queryOrder->numAtts] =
-								sortOrder.whichAtts[i];
+								orList[j][0].whichAtt1;
 						queryOrder->whichTypes[queryOrder->numAtts++] =
-								sortOrder.whichTypes[i];
+								orList[j][0].attType;
+						(*(literalOrder))->whichAtts[(*(literalOrder))->numAtts] =
+								orList[j][0].whichAtt2;
+						(*(literalOrder))->whichTypes[(*(literalOrder))->numAtts++] =
+								orList[j][0].attType;
 						match = true;
 					}
 				} else if ((orList[j][0].operand1 == Literal)
@@ -662,9 +668,13 @@ OrderMaker* CNF::getQueryOrder(OrderMaker &sortOrder) {
 					if ((sortOrder.whichAtts[i] == orList[j][0].whichAtt2)
 							&& (sortOrder.whichTypes[i] == orList[j][0].attType)) {
 						queryOrder->whichAtts[queryOrder->numAtts] =
-								sortOrder.whichAtts[i];
-						queryOrder->whichTypes[queryOrder->numAtts++] =
-								sortOrder.whichTypes[i];
+								orList[j][0].whichAtt2;
+						queryOrder->whichTypes[queryOrder->numAtts] =
+								orList[j][0].attType;
+						(*(literalOrder))->whichAtts[(*(literalOrder))->numAtts] =
+								orList[j][0].whichAtt1;
+						(*(literalOrder))->whichTypes[(*(literalOrder))->numAtts++] =
+								orList[j][0].attType;
 						match = true;
 					}
 				}

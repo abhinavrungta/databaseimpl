@@ -18,10 +18,12 @@ class Sorted: public GenericDBFile {
 	File tmpFile;
 	bool queryChanged;
 	OrderMaker *queryOrder;
+	OrderMaker *literalOrder;
 
 	void MergeBigQ();
 	void addToFile(Record &temp);
-	int BinarySearch(int low, int high, OrderMaker *order, Record &literal);
+	int BinarySearch(int low, int high, OrderMaker *order, OrderMaker *lorder,
+			Record &literal);
 
 public:
 	Sorted();
