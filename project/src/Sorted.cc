@@ -136,7 +136,7 @@ int Sorted::GetNext(Record &fetchme) {
 		mode = 0;
 		// if switching from write mode, close input pipe and merge bigQ with already sorted file.
 		MergeBigQ();
-		this->MoveFirst();
+		MoveFirst();
 	}
 	// read next record from page buffer.
 	if (!readPageBuf.GetFirst(&fetchme)) {
@@ -162,10 +162,11 @@ int Sorted::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 	ComparisonEngine comp;
 	// construct QueryOrder
 	if (queryChanged) {
+		cout << "Query Changed" << endl;
 		queryChanged = false;
 		queryOrder = cnf.getQueryOrder(*(info->myOrder), &literalOrder);
 		if (queryOrder != NULL) {
-			cout << "Doing Binary Search";
+			cout << "Query Order Created. Doing Binary Search" << endl;
 			// do binary search to get first matching record.
 			int low = readPageCtr;
 			if (readPageCtr == -1) {
@@ -184,7 +185,6 @@ int Sorted::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 				cout << "Page Not found";
 				return 0;
 			}
-			cout << "Page NO " << pageNo;
 			// load the searched page if not equal to page in buffer.
 			if (pageNo != readPageCtr) {
 				readPageBuf.EmptyItOut();
@@ -200,8 +200,10 @@ int Sorted::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 			}
 
 			//if the first record matches the CNF also, return 1.
-			if (comp.Compare(&fetchme, &literal, &cnf))
+			if (comp.Compare(&fetchme, &literal, &cnf)) {
+				cout << "First Match Found." << endl;
 				return 1;
+			}
 		}
 	}
 	if (queryOrder) {
@@ -217,6 +219,7 @@ int Sorted::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 			}
 		}
 	} else {
+		cout << "No Query Order constructed" << endl;
 		//no query order constructed
 		while (GetNext(fetchme)) {
 			if (comp.Compare(&fetchme, &literal, &cnf))
@@ -237,6 +240,7 @@ void Sorted::addToFile(Record &temp) {
 
 void Sorted::MergeBigQ() {
 	input->ShutDown();
+	cout << "Merging BigQ" << endl;
 	Record *rec1 = new Record;
 	Record *rec2 = new Record;
 
@@ -311,7 +315,6 @@ void Sorted::MergeBigQ() {
 int Sorted::BinarySearch(int low, int high, OrderMaker *order,
 		OrderMaker *lorder, Record &literal) {
 	ComparisonEngine comp;
-	cout << "Low " << low << " High " << high << endl;
 	if (high < low)
 		return -1;
 	if (high == low)
@@ -320,11 +323,9 @@ int Sorted::BinarySearch(int low, int high, OrderMaker *order,
 	Page *tmpPage = new Page;
 	Record *tmpRecord = new Record;
 	int mid = (int) (high + low) / 2;
-	cout << "Mid " << mid;
 	myFile.GetPage(tmpPage, mid);
 	tmpPage->GetFirst(tmpRecord);
 	int res = comp.Compare(tmpRecord, order, &literal, lorder);
-	cout << "res " << res;
 	delete tmpPage;
 	delete tmpRecord;
 

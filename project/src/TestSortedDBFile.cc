@@ -22,6 +22,7 @@ protected:
 	}
 
 	int add_data(FILE *src, int numrecs, int &res, relation *rel);
+	void Query(relation *rel);
 };
 
 int SortedDBFileTest::add_data(FILE *src, int numrecs, int &res,
@@ -32,8 +33,9 @@ int SortedDBFileTest::add_data(FILE *src, int numrecs, int &res,
 
 	int proc = 0;
 	int xx = 20000;
-	while ((res = temp.SuckNextRecord(rel->schema(), src)) && ++proc < numrecs) {
+	while (proc < numrecs && (res = temp.SuckNextRecord(rel->schema(), src))) {
 		dbfile.Add(temp);
+		proc++;
 		if (proc == xx)
 			cerr << "\t ";
 		if (proc % xx == 0)
@@ -43,9 +45,31 @@ int SortedDBFileTest::add_data(FILE *src, int numrecs, int &res,
 	return proc;
 }
 
+void SortedDBFileTest::Query(relation *rel) {
+	CNF cnf;
+	Record literal;
+	rel->get_cnf(cnf, literal);
+
+	DBFile dbfile;
+	dbfile.Open(rel->path());
+	dbfile.MoveFirst();
+
+	Record temp;
+	int cnt = 0;
+	while (dbfile.GetNext(temp, cnf, literal)) {
+		++cnt;
+		temp.Print(rel->schema());
+		if (cnt % 10000 == 0) {
+			cerr << ".";
+		}
+	}
+	cout << "\n query over " << rel->path() << " returned " << cnt << " recs\n";
+	dbfile.Close();
+}
+
 // create a dbfile interactively
 TEST_F(SortedDBFileTest, Add) {
-	int runlen = 10;
+	int runlen = 0;
 	while (runlen < 1) {
 		cout << "\t\n specify runlength:\n\t ";
 		cin >> runlen;
@@ -53,7 +77,6 @@ TEST_F(SortedDBFileTest, Add) {
 
 	OrderMaker o;
 	rel->get_sort_order(o);
-
 	struct SortInfo {
 		OrderMaker *o;
 		int l;
@@ -73,18 +96,24 @@ TEST_F(SortedDBFileTest, Add) {
 
 	int proc = 1, res = 1, tot = 0;
 	while (proc && res) {
-		int x = 1;
+		int x = 0;
 		while (x < 1 || x > 3) {
 			cout << "\n select option for : " << rel->path() << endl;
 			cout << " \t 1. add a few (1 to 1k recs)\n";
 			cout << " \t 2. add a lot (1k to 1e+06 recs) \n";
+			cout << " \t 3. run some query \n \t ";
 			cin >> x;
 		}
-		proc = add_data(tblfile, lrand48() % (int) pow(1e3, x) + (x - 1) * 1000,
-				res, rel);
-		tot += proc;
-		if (proc)
-			cout << "\n\t added " << proc << " recs..so far " << tot << endl;
+		if (x < 3) {
+			proc = add_data(tblfile,
+					lrand48() % (int) pow(1e3, x) + (x - 1) * 1000, res, rel);
+			tot += proc;
+			if (proc)
+				cout << "\n\t added " << proc << " recs..so far " << tot
+						<< endl;
+		} else {
+			Query(rel);
+		}
 	}
 	cout << "\n create finished.. " << tot << " recs inserted\n";
 	fclose(tblfile);
@@ -110,25 +139,5 @@ TEST_F(SortedDBFileTest, Scan) {
 }
 
 TEST_F(SortedDBFileTest, Query) {
-	CNF cnf;
-	Record literal;
-	rel->get_cnf(cnf, literal);
-
-	DBFile dbfile;
-	dbfile.Open(rel->path());
-	dbfile.MoveFirst();
-
-	Record temp;
-
-	int cnt = 0;
-	while (dbfile.GetNext(temp, cnf, literal)) {
-		++cnt;
-		temp.Print(rel->schema());
-		if (cnt % 10000 == 0) {
-			cerr << ".";
-		}
-	}
-	cout << "\n query over " << rel->path() << " returned " << cnt << " recs\n";
-	dbfile.Close();
-
+	Query(rel);
 }
