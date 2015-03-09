@@ -2,11 +2,13 @@
 
 #include <cstdio>
 #include <iostream>
+#include <string>
 
 #include "Comparison.h"
 #include "ComparisonEngine.h"
 #include "Defs.h"
 #include "File.h"
+#include "Pipe.h"
 #include "Record.h"
 
 Sorted::Sorted() {
@@ -54,6 +56,7 @@ int Sorted::Open(char *f_path) {
 	sprintf(metaFile, "%s.meta", fileName);
 	FILE *meta = fopen(metaFile, "r");
 	OrderMaker *tmp = new OrderMaker;
+	// runlen is in second line, so read twice.
 	fscanf(meta, "%d", &runlen);
 	fscanf(meta, "%d", &runlen);
 	info->runLength = runlen;
@@ -79,6 +82,7 @@ int Sorted::Open(char *f_path) {
 	fclose(meta);
 	delete[] metaFile;
 
+	// open file.
 	myFile.Open(1, f_path);
 	readPageCtr = -1;
 	readPageBuf.EmptyItOut();
@@ -98,6 +102,7 @@ int Sorted::Close() {
 		// if switching from write mode, close input pipe and merge bigQ with already sorted file.
 		MergeBigQ();
 	}
+	// write meta info to the file.
 	char *metaFile = new char[100];
 	sprintf(metaFile, "%s.meta", fileName);
 	FILE *meta = fopen(metaFile, "w");
@@ -110,6 +115,7 @@ int Sorted::Close() {
 	fprintf(meta, "%s", info->myOrder->ToString().c_str());
 	fclose(meta);
 	delete[] metaFile;
+	// close file.
 	myFile.Close();
 	return 1;
 }
@@ -119,14 +125,14 @@ void Sorted::Add(Record &rec) {
 	Record temp;
 	temp.Consume(&rec);
 	if (!mode) {
-		// if switching from read mode, get last page.
+		// if switching from read mode, Create instance of BigQ.
+		mode = 1;
 		if (input == NULL)
-			input = new Pipe(100);
+			input = new Pipe(PIPE_SIZE);
 		if (output == NULL)
-			output = new Pipe(100);
+			output = new Pipe(PIPE_SIZE);
 		if (bigQ == NULL)
 			bigQ = new BigQ(*input, *output, *(info->myOrder), info->runLength);
-		mode = 1;
 	}
 	input->Insert(&temp);
 }
@@ -160,26 +166,18 @@ int Sorted::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 		MoveFirst();
 	}
 	ComparisonEngine comp;
-	// construct QueryOrder
+	// construct new QueryOrder if queryChanged.
 	if (queryChanged) {
 		cout << "Query Changed" << endl;
 		queryChanged = false;
 		queryOrder = cnf.getQueryOrder(*(info->myOrder), &literalOrder);
+		// if queryOrder created, do a binary search.
 		if (queryOrder != NULL) {
 			cout << "Query Order Created. Doing Binary Search" << endl;
-			// do binary search to get first matching record.
-			int low = readPageCtr;
-			if (readPageCtr == -1) {
-				readPageCtr = 0;
-				readPageBuf.EmptyItOut();
-				myFile.GetPage(&readPageBuf, readPageCtr);
-				low = readPageCtr;
-			}
-			low = 0;
+			int low = readPageCtr == -1 ? 0 : readPageCtr;
 			int high = myFile.GetLength() - 2;
 			int pageNo = BinarySearch(low, high, queryOrder, literalOrder,
 					literal); // returns page no with matching queryorder.
-
 			// if no possible match for given queryOrder.
 			if (pageNo == -1) {
 				cout << "Page Not found";
@@ -191,14 +189,12 @@ int Sorted::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 				myFile.GetPage(&readPageBuf, pageNo);
 				readPageCtr = pageNo;
 			}
-
 			// get the first probable record which matches query order in current page or next one.
 			while (GetNext(fetchme) && readPageCtr <= pageNo + 1) {
 				if (comp.Compare(&fetchme, queryOrder, &literal, literalOrder)
 						== 0)
 					break;
 			}
-
 			//if the first record matches the CNF also, return 1.
 			if (comp.Compare(&fetchme, &literal, &cnf)) {
 				cout << "First Match Found." << endl;
@@ -206,8 +202,8 @@ int Sorted::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 			}
 		}
 	}
-	if (queryOrder) {
-		// else, sequentially scan for matching record.
+	// if query order is not null, and the first match found above did not satisfy the CNF or we are here because query was not changed, do a linear scan.
+	if (queryOrder != NULL) {
 		while (GetNext(fetchme)) {
 			// at this point if queryOrder is not matching, return 0;
 			if (comp.Compare(&fetchme, queryOrder, &literal, literalOrder)
@@ -220,13 +216,16 @@ int Sorted::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 		}
 	} else {
 		cout << "No Query Order constructed" << endl;
-		//no query order constructed
 		while (GetNext(fetchme)) {
 			if (comp.Compare(&fetchme, &literal, &cnf))
 				return 1;
 		}
 	}
 	return 0;
+}
+
+OrderMaker* Sorted::GetSortOrder() {
+	return info->myOrder;
 }
 
 void Sorted::addToFile(Record &temp) {

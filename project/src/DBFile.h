@@ -1,5 +1,6 @@
 #ifndef DBFILE_H
 #define DBFILE_H
+class OrderMaker;
 
 class CNF;
 class GenericDBFile;
@@ -28,6 +29,6 @@ public:
 	void Add(Record &addme);
 	int GetNext(Record &fetchme);
 	int GetNext(Record &fetchme, CNF &cnf, Record &literal);
-
+	OrderMaker* GetSortOrder();
 };
 #endif

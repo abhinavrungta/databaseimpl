@@ -54,16 +54,24 @@ void SortedDBFileTest::Query(relation *rel) {
 	dbfile.Open(rel->path());
 	dbfile.MoveFirst();
 
-	Record temp;
-	int cnt = 0;
-	while (dbfile.GetNext(temp, cnf, literal)) {
-		++cnt;
-		temp.Print(rel->schema());
-		if (cnt % 10000 == 0) {
-			cerr << ".";
+	int err = 0;
+	int i = 0;
+	Record rec[2];
+	Record *last = NULL, *prev = NULL;
+	ComparisonEngine ceng;
+
+	while (dbfile.GetNext(rec[i % 2], cnf, literal)) {
+		prev = last;
+		last = &rec[i % 2];
+		if (prev && last) {
+			if (ceng.Compare(prev, last, dbfile.GetSortOrder()) > 0) {
+				err++;
+			}
 		}
+		i++;
 	}
-	cout << "\n query over " << rel->path() << " returned " << cnt << " recs\n";
+	EXPECT_EQ(0, err);
+	cout << "\n query over " << rel->path() << " returned " << i << " recs\n";
 	dbfile.Close();
 }
 
@@ -125,16 +133,24 @@ TEST_F(SortedDBFileTest, Scan) {
 	dbfile.Open(rel->path());
 	dbfile.MoveFirst();
 
-	Record temp;
+	int err = 0;
+	int i = 0;
+	Record rec[2];
+	Record *last = NULL, *prev = NULL;
+	ComparisonEngine ceng;
 
-	int cnt = 0;
-	while (dbfile.GetNext(temp) && ++cnt) {
-		temp.Print(rel->schema());
-		if (cnt % 10000) {
-			cerr << ".";
+	while (dbfile.GetNext(rec[i % 2])) {
+		prev = last;
+		last = &rec[i % 2];
+		if (prev && last) {
+			if (ceng.Compare(prev, last, dbfile.GetSortOrder()) > 0) {
+				err++;
+			}
 		}
+		i++;
 	}
-	cout << "\n scanned " << cnt << " recs \n";
+	EXPECT_EQ(0, err);
+	cout << "\n scanned " << i << " recs \n";
 	dbfile.Close();
 }
 

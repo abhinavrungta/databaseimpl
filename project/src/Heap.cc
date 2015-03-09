@@ -8,6 +8,7 @@
 #include "Record.h"
 
 Heap::Heap() {
+	readBufOutOfSync = false;
 }
 
 Heap::~Heap() {
@@ -95,49 +96,50 @@ void Heap::Add(Record &rec) {
 int Heap::GetNext(Record &fetchme) {
 	if (mode) {
 		// if switching from write mode, write the buffer to file.
-		myFile.AddPage(&writePageBuf, writePageCtr);
-		writePageBuf.EmptyItOut();
-		if (readPageCtr == writePageCtr) {
-			readBufOutOfSync = true;
-		}
 		mode = 0;
+		if (writePageBuf.GetLength() > 0) {
+			myFile.AddPage(&writePageBuf, writePageCtr);
+			writePageBuf.EmptyItOut();
+			if (readPageCtr == writePageCtr) {
+				readBufOutOfSync = true;
+			}
+		}
 	}
 	// read next record from page buffer.
 	if (!readPageBuf.GetFirst(&fetchme)) {
-		// check if current page is not last page, fetch next page.
-		if (readPageCtr < myFile.GetLength() - 2) {
-			++readPageCtr;
+		if (readBufOutOfSync) {
+			// if out of sync, read the currentPage again.
+			readBufOutOfSync = false;
 			myFile.GetPage(&readPageBuf, readPageCtr);
-			// if readBuf is out of sync, do not reset readCtr.
-			if (readBufOutOfSync) {
-				readBufOutOfSync = false;
-			} else {
-				readCtr = 0;
-			}
-			// if read buffer is out of sync, fetch records uptil last ctr.
 			if (readCtr < readPageBuf.GetLength()) {
 				int i = 0;
 				while (i < readCtr) {
 					readPageBuf.GetFirst(&fetchme);
 					i++;
-					cout << "Read 1 : " << readCtr << endl;
 				}
 			}
-			readPageBuf.GetFirst(&fetchme);
 		} else {
-			return 0;
+			// check if current page is not last page, fetch next page.
+			if (readPageCtr < myFile.GetLength() - 2) {
+				++readPageCtr;
+				myFile.GetPage(&readPageBuf, readPageCtr);
+				readCtr = 0;
+			} else
+				return 0;
 		}
+		// read the next record.
+		readPageBuf.GetFirst(&fetchme);
 	}
-// increment record counter in current buffer.
+	// increment record counter in current buffer.
 	readCtr++;
 	return 1;
 }
 
 int Heap::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 	ComparisonEngine comp;
-// loop until we break; we break when a record is matched.
+	// loop until we break; we break when a record is matched.
 	while (1) {
-		// read next record from page buffer.
+		// read next record from page buffer, return if not found.
 		if (!GetNext(fetchme)) {
 			return 0;
 		}
@@ -146,4 +148,8 @@ int Heap::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 			return 1;
 		}
 	}
+}
+
+OrderMaker* Heap::GetSortOrder() {
+	return NULL;
 }

@@ -634,6 +634,7 @@ void CNF::GrowFromParseTree(struct AndList *parseTree, Schema *mySchema,
 	remove("hkljdfgkSDFSDF");
 }
 
+// returns an orderMaker for the given CNF and sort Order. Also returns a corresponding OrderMaker for the literal record.
 OrderMaker* CNF::getQueryOrder(OrderMaker &sortOrder,
 		OrderMaker** literalOrder) {
 	OrderMaker *queryOrder = new OrderMaker();
@@ -681,6 +682,7 @@ OrderMaker* CNF::getQueryOrder(OrderMaker &sortOrder,
 			}
 			j++;
 		}
+		// if the current attribute of sortOrder didn't have any match in the CNF, break;
 		if (!match)
 			break;
 	}

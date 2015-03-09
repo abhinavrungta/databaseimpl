@@ -290,14 +290,7 @@ TEST_F(BigQTest, ReverseSort) {
 }
 
 TEST_F(BigQTest, SortReverseInput) {
-	int option = 0;
-	while (option < 1 || option > 3) {
-		cout << " select test option: \n";
-		cout << " \t 1. sort \n";
-		cout << " \t 2. sort + display \n";
-		cout << " \t 3. sort + write \n\t ";
-		cin >> option;
-	}
+	int option = 3;
 
 	cout << "\t\n specify runlength:\n\t ";
 	cin >> runlen;
@@ -337,6 +330,7 @@ TEST_F(BigQTest, SortReverseInput) {
 	Pipe input1(buffsz);
 	Pipe output1(buffsz);
 
+	option = 2;
 	// thread to dump data into the input pipe (for BigQ's consumption)
 	pthread_t thread11;
 	testutil tutil1 = { &input1, &output1, &sortorder, rel, false, false };

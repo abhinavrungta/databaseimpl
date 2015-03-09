@@ -17,6 +17,7 @@ DBFile::~DBFile() {
 	internalVar = NULL;
 }
 
+// internalVar is an instance of GenericDBFile class. Based on F_type create an object and close the file.
 int DBFile::Create(char *f_path, fType f_type, void *startup) {
 	if (f_type == heap) {
 		internalVar = new Heap();
@@ -45,6 +46,7 @@ int DBFile::Open(char *f_path) {
 	}
 
 	fType ftype;
+	// read file type from meta file, which was created when file was previously closed. Then create object accordingly.
 	fscanf(fp, "%d", &ftype);
 	if (ftype == heap) {
 		internalVar = new Heap();
@@ -55,6 +57,7 @@ int DBFile::Open(char *f_path) {
 		return 0;
 	}
 	fclose(fp);
+	// store fileName of file opened.
 	if (internalVar != NULL) {
 		strcpy(internalVar->fileName, f_path);
 		return internalVar->Open(f_path);
@@ -80,4 +83,8 @@ int DBFile::GetNext(Record &fetchme) {
 
 int DBFile::GetNext(Record &fetchme, CNF &cnf, Record &literal) {
 	return internalVar->GetNext(fetchme, cnf, literal);
+}
+
+OrderMaker* DBFile::GetSortOrder() {
+	return internalVar->GetSortOrder();
 }
