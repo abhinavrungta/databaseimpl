@@ -17,6 +17,8 @@ CPPFLAGS += -I$(FUSED_GTEST_DIR) -DGTEST_HAS_PTHREAD=0
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g
 
+A3TESTS=TestBigQ.cc TestSortedDBFile.cc
+A3OBJECTS_TESTS=$(A3TESTS:.cc=.o)
 A2TESTS=TestBigQ.cc TestSortedDBFile.cc
 A2OBJECTS_TESTS=$(A2TESTS:.cc=.o)
 A1TESTS=TestDBFile.cc
@@ -30,6 +32,14 @@ endif
 	
 main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o
 	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o -ll
+
+a3test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o a3test.o gtest-all.o gtest_main.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o a3test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o $(A3OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
+
+a3test.o :
+	for dir in $(A3TESTS); do \
+		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $$dir; \
+	done
 	
 a2test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o y.tab.o lex.yy.o a2test.o gtest-all.o gtest_main.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o a2test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o y.tab.o lex.yy.o $(A2OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
@@ -79,14 +89,28 @@ Record.o: Record.cc
 
 Schema.o: Schema.cc
 	$(CC) -g -c Schema.cc
+
+RelOp.o: RelOp.cc
+	$(CC) -g -c RelOp.cc
+
+Function.o: Function.cc
+	$(CC) -g -c Function.cc
 	
 y.tab.o: Parser.y
 	yacc -d Parser.y
 	g++ -c y.tab.c
 
+yyfunc.tab.o: ParserFunc.y
+	yacc -p "yyfunc" -b "yyfunc" -d ParserFunc.y
+	g++ -c yyfunc.tab.c
+
 lex.yy.o: Lexer.l
 	lex  Lexer.l
 	gcc  -c lex.yy.c
+
+lex.yyfunc.o: LexerFunc.l
+	lex -Pyyfunc LexerFunc.l
+	gcc  -c lex.yyfunc.c
 
 gtest-all.o : $(FUSED_GTEST_H) $(FUSED_GTEST_ALL_CC)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(FUSED_GTEST_DIR)/gtest/gtest-all.cc

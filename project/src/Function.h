@@ -1,5 +1,7 @@
+#ifndef FUNCTION_H
+#define FUNCTION_H
 #include "Record.h"
-#include "ParseFunc.h"
+#include "ParseTree.h"
 
 #define MAX_DEPTH 100
 
@@ -55,3 +57,4 @@ public:
 	// applies the function to the given record and returns the result
 	Type Apply(Record &toMe, int &intResult, double &doubleResult);
 };
+#endif
