@@ -17,7 +17,7 @@ CPPFLAGS += -I$(FUSED_GTEST_DIR) -DGTEST_HAS_PTHREAD=0
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g
 
-A3TESTS=TestBigQ.cc TestSortedDBFile.cc
+A3TESTS=TestRelOp.cc
 A3OBJECTS_TESTS=$(A3TESTS:.cc=.o)
 A2TESTS=TestBigQ.cc TestSortedDBFile.cc
 A2OBJECTS_TESTS=$(A2TESTS:.cc=.o)
