@@ -1,5 +1,7 @@
+#ifndef FUNCTION_H
+#define FUNCTION_H
 #include "Record.h"
-#include "ParseFunc.h"
+#include "ParseTree.h"
 
 #define MAX_DEPTH 100
 
@@ -69,3 +71,4 @@ public:
 	Type resultType() const { return returnsInt ? Int : Double; }
 
 };
+#endif

@@ -1,12 +1,26 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
+
+#include "../gtest/gtest.h"
+#include "Comparison.h"
+#include "Function.h"
 #include "Record.h"
-#include "gtest/gtest.h"
+#include "Schema.h"
 
 extern "C" {
 int yyparse(void);   // defined in y.tab.c
+int yyfuncparse(void);   // defined in yyfunc.tab.c
+void init_lexical_parser(char *); // defined in lex.yy.c (from Lexer.l)
+void close_lexical_parser(); // defined in lex.yy.c
+void init_lexical_parser_func(char *); // defined in lex.yyfunc.c (from Lexerfunc.l)
+void close_lexical_parser_func(); // defined in lex.yyfunc.c
 }
 
 extern struct AndList *final;
+extern struct FuncOperator *finalfunc;
+extern FILE *yyin;
 
 // The fixture for testing class DBFile.
 class BaseTest: public testing::Test {
@@ -40,27 +54,97 @@ public:
 			cout << "\t path: " << path() << endl;
 		}
 
-		void get_cnf(CNF &cnf_pred, Record &literal) {
-			cout << " Enter CNF predicate (when done press ctrl-D):\n\t";
+		void get_cnf(char *input, Schema *left, CNF &cnf_pred,
+				Record &literal) {
+			init_lexical_parser(input);
 			if (yyparse() != 0) {
-				std::cout << "Can't parse your CNF.\n";
+				cout << " Error: can't parse your CNF " << input << endl;
+				exit(1);
+			}
+			cnf_pred.GrowFromParseTree(final, left, literal); // constructs CNF predicate
+			close_lexical_parser();
+		}
+
+		void get_cnf(char *input, Schema *left, Schema *right, CNF &cnf_pred,
+				Record &literal) {
+			init_lexical_parser(input);
+			if (yyparse() != 0) {
+				cout << " Error: can't parse your CNF " << input << endl;
+				exit(1);
+			}
+			cnf_pred.GrowFromParseTree(final, left, right, literal); // constructs CNF predicate
+			close_lexical_parser();
+		}
+
+		void get_cnf(char *input, Schema *left, Function &fn_pred) {
+			init_lexical_parser_func(input);
+			if (yyfuncparse() != 0) {
+				cout << " Error: can't parse your arithmetic expr. " << input
+						<< endl;
+				exit(1);
+			}
+			fn_pred.GrowFromParseTree(finalfunc, *left); // constructs CNF predicate
+			close_lexical_parser_func();
+		}
+
+		void get_cnf(char *input, CNF &cnf_pred, Record &literal) {
+			init_lexical_parser(input);
+			if (yyparse() != 0) {
+				cout << " Error: can't parse your CNF.\n";
+				exit(1);
+			}
+			cnf_pred.GrowFromParseTree(final, schema(), literal); // constructs CNF predicate
+			close_lexical_parser();
+		}
+
+		void get_cnf(char *input, Function &fn_pred) {
+			init_lexical_parser_func(input);
+			if (yyfuncparse() != 0) {
+				cout << " Error: can't parse your CNF.\n";
+				exit(1);
+			}
+			fn_pred.GrowFromParseTree(finalfunc, *(schema())); // constructs CNF predicate
+			close_lexical_parser_func();
+		}
+
+		void get_cnf(CNF &cnf_pred, Record &literal) {
+			cout << "\n enter CNF predicate (when done press ctrl-D):\n\t";
+			if (yyparse() != 0) {
+				cout << " Error: can't parse your CNF.\n";
 				exit(1);
 			}
 			cnf_pred.GrowFromParseTree(final, schema(), literal); // constructs CNF predicate
 		}
+
+		void get_file_cnf(const char *fpath, CNF &cnf_pred, Record &literal) {
+			yyin = fopen(fpath, "r");
+			if (yyin == NULL) {
+				cout << " Error: can't open file " << fpath
+						<< " for parsing \n";
+				exit(1);
+			}
+			if (yyparse() != 0) {
+				cout << " Error: can't parse your CNF.\n";
+				exit(1);
+			}
+			cnf_pred.GrowFromParseTree(final, schema(), literal); // constructs CNF predicate
+			// cnf_pred.GrowFromParseTree (final, l_schema (), r_schema (), literal); // constructs CNF predicate over two relations l_schema is the left reln's schema r the right's
+			//cnf_pred.Print ();
+		}
+
 		void get_sort_order(OrderMaker &sortorder) {
 			cout << "\n specify sort ordering (when done press ctrl-D):\n\t ";
 			if (yyparse() != 0) {
-				cout << "Can't parse your sort CNF.\n";
+				cout << " Error: can't parse your CNF \n";
 				exit(1);
 			}
-			cout << " \n";
 			Record literal;
 			CNF sort_pred;
 			sort_pred.GrowFromParseTree(final, schema(), literal); // constructs CNF predicate
 			OrderMaker dummy;
 			sort_pred.GetSortOrders(sortorder, dummy);
 		}
+
 		~relation() {
 			delete rschema;
 		}

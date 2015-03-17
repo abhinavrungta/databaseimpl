@@ -1,13 +1,12 @@
-
 #ifndef ParseFunc
 #define ParseFunc
 
 // these are the types of operands that can appear in a CNF expression
-#ifndef DOUBLE
+#ifndef NAME
 #define DOUBLE 1
 #endif
 
-#ifndef INT
+#ifndef NAME
 #define INT 2
 #endif
 
@@ -32,7 +31,7 @@ struct FuncOperator {
 	// these are the operators on the left and on the right
 	struct FuncOperator *leftOperator;
 	struct FuncOperand *leftOperand;
-	struct FuncOperator *right;	
+	struct FuncOperator *right;
 
 };
 
