@@ -359,6 +359,4 @@ Type Function::Apply(Record &toMe, int &intResult, double &doubleResult) {
 		doubleResult = *((double *) lastPos);
 		return Double;
 	}
-
 }
-

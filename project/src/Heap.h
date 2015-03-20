@@ -5,7 +5,6 @@
 
 class Heap: public GenericDBFile {
 	bool readBufOutOfSync; // is true if page for current readBuf is potentially out of sync.
-
 public:
 	Heap();
 	~Heap();

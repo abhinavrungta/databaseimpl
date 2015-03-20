@@ -30,8 +30,8 @@ ifdef linux
 tag = -n
 endif
 	
-main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o
-	$(CC) -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o y.tab.o lex.yy.o main.o -ll
+test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o test.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o test.o -o $@
 
 a3test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o a3test.o gtest-all.o gtest_main.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o a3test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o $(A3OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
@@ -57,8 +57,8 @@ a1test.o :
 		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $$dir; \
 	done
 
-main.o: main.cc
-	$(CC) -g -c main.cc
+test.o: test.cc
+	$(CC) -g -c test.cc
 	
 Comparison.o: Comparison.cc
 	$(CC) -g -c Comparison.cc
@@ -122,8 +122,12 @@ clean:
 	rm -f *.o
 	rm -f *.out
 	rm -f y.tab.c
+	rm -f yyfunc.tab.c
 	rm -f lex.yy.c
+	rm -f lex.yyfunc.c
 	rm -f y.tab.h
+	rm -f yyfunc.tab.h
 	rm -rf a1test
 	rm -rf a2test
+	rm -rf a3test
 	rm -rf main
