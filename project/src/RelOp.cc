@@ -133,14 +133,14 @@ void Join::Apply() {
 	if (this->cnf->GetSortOrders(*leftOrder, *rightOrder)) {
 		Pipe *leftSortPipe = new Pipe(PIPE_SIZE);
 		BigQ *bigQL = new BigQ(*(this->inPipeL), *leftSortPipe, *leftOrder,
-				this->nPages);
+		RUNLEN);
 
 		Pipe *rightSortPipe = new Pipe(PIPE_SIZE);
 		BigQ *bigQR = new BigQ(*(this->inPipeR), *rightSortPipe, *rightOrder,
-				this->nPages);
+		RUNLEN);
 
 		vector<Record *> vectorR;
-		if (!leftSortPipe->Remove(lRec) && !rightSortPipe->Remove(rRec)) {
+		if (leftSortPipe->Remove(lRec) && rightSortPipe->Remove(rRec)) {
 			// Get Number of Attributes from both relations.
 			int leftAttr = lRec->GetNumAtts();
 			int rightAttr = rRec->GetNumAtts();
@@ -278,6 +278,7 @@ void Join::Apply() {
 			tmpDbFile.Close();
 		}
 	}
+	this->outPipe->ShutDown();
 }
 void Join::Run(Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp,
 		Record &literal) {
@@ -374,7 +375,7 @@ void DuplicateRemoval::Apply() {
 		exit(0);
 // create a BigQ instance to Sort the input.
 	Pipe *sortPipe = new Pipe(PIPE_SIZE);
-	BigQ *bigQ = new BigQ(*(this->inPipe), *sortPipe, *order, this->nPages);
+	BigQ *bigQ = new BigQ(*(this->inPipe), *sortPipe, *order, RUNLEN);
 
 	Record *curr = new Record;
 	Record *prev = new Record;
@@ -435,7 +436,6 @@ void GroupBy::Apply() {
 	Type type = this->computeMe->resultType();
 
 	ComparisonEngine cmp;
-	ostringstream ss;
 	Record *tmpRcd = new Record();
 	if (sortPipe.Remove(tmpRcd)) {
 		bool more = true;
@@ -444,6 +444,7 @@ void GroupBy::Apply() {
 			more = false;
 			Record *r = new Record();
 			Record *lastRcd = new Record;
+			ostringstream ss;
 			if (type == Int) {
 				int result = 0;
 				result += this->computeMe->Apply<int>(*tmpRcd);
@@ -477,14 +478,16 @@ void GroupBy::Apply() {
 				ss << result;
 				ss << "|";
 			}
+			// create schema from attribute data.
+			Schema *schema = new Schema((char *) "dummy", 1, attr);
 			Record *sumRcd = new Record();
+			// create a tempFile with the computed result, to read into a record at a later point.
 			FILE * meta = fopen("tmpGrpFile", "w");
 			fputs(ss.str().c_str(), meta);
 			fclose(meta);
 			FILE * tmp = fopen("tmpGrpFile", "r");
-			// create schema from attribute data.
-			Schema *schema = new Schema((char *) "dummy", 1, attr);
 			sumRcd->SuckNextRecord(schema, tmp);
+			fclose(tmp);
 
 			Record *tuple = new Record;
 			tuple->MergeRecords(sumRcd, lastRcd, 1, this->groupAtts->numAtts,

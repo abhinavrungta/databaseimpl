@@ -46,7 +46,7 @@ protected:
 	int clear_pipe(Pipe &in_pipe, Schema *schema, bool print);
 	int clear_pipe(Pipe &in_pipe, Schema *schema, Function &func, bool print);
 	void init_SF(char *pred_str, int numpgs, DBFile &db, CNF &cnf, Record &rec,
-			SelectFile &sf);
+			SelectFile &sf, relation *rel);
 };
 int RelOpTest::clear_pipe(Pipe &in_pipe, Schema *schema, bool print) {
 	Record rec;
@@ -80,9 +80,9 @@ int RelOpTest::clear_pipe(Pipe &in_pipe, Schema *schema, Function &func,
 }
 
 void RelOpTest::init_SF(char *pred_str, int numpgs, DBFile &db, CNF &cnf,
-		Record &rec, SelectFile &sf) {
-	db.Open(rel->path());
-	rel->get_cnf(pred_str, rel->schema(), cnf, rec);
+		Record &rec, SelectFile &sf, relation *rela) {
+	db.Open(rela->path());
+	rela->get_cnf(pred_str, rela->schema(), cnf, rec);
 	sf.Use_n_Pages(numpgs);
 }
 
@@ -93,7 +93,7 @@ TEST_F(RelOpTest, q1) {
 	CNF cnf;
 	Record rec;
 	SelectFile sf;
-	init_SF(pred_ps, 100, db, cnf, rec, sf);
+	init_SF(pred_ps, 100, db, cnf, rec, sf, rel);
 
 	Pipe *pip = new Pipe(pipesz);
 	sf.Run(db, *pip, cnf, rec);
@@ -113,7 +113,7 @@ TEST_F(RelOpTest, q2) {
 	DBFile db;
 	CNF cnf;
 	Record rec;
-	init_SF(pred_p, 100, db, cnf, rec, sf);
+	init_SF(pred_p, 100, db, cnf, rec, sf, rel);
 
 	Project P_p;
 	Pipe _out(pipesz);
@@ -138,5 +138,51 @@ TEST_F(RelOpTest, q2) {
 	db.Close();
 }
 
-TEST_F(RelOpTest, Query) {
+TEST_F(RelOpTest, q3) {
+	char *pred_s = "(s_suppkey = s_suppkey)";
+	SelectFile sf;
+	DBFile db;
+	CNF cnf;
+	Record rec;
+	relation *rel_s = new relation("supplier",
+			new Schema(catalog_path, "supplier"), dbfile_dir);
+	init_SF(pred_s, 100, db, cnf, rec, sf, rel_s);
+	Pipe *pip = new Pipe(pipesz);
+	sf.Run(db, *pip, cnf, rec);
+
+	char *pred_ps = "(ps_suppkey = ps_suppkey)";
+	SelectFile sf2;
+	DBFile db2;
+	CNF cnf2;
+	Record rec2;
+	relation *rel_ps = new relation("partsupp",
+			new Schema(catalog_path, "partsupp"), dbfile_dir);
+	init_SF(pred_ps, 100, db2, cnf2, rec2, sf2, rel_ps);
+	Pipe *pip2 = new Pipe(pipesz);
+	sf2.Run(db2, *pip2, cnf2, rec2);
+
+	Join J;
+	// left sf
+	// right sf2
+	Pipe _s_ps(pipesz);
+	CNF cnf_p_ps;
+	Record lit_p_ps;
+	rel->get_cnf("(s_suppkey = ps_suppkey)", rel_s->schema(), rel_ps->schema(),
+			cnf_p_ps, lit_p_ps);
+
+	int outAtts = sAtts + psAtts;
+	Attribute ps_supplycost = { "ps_supplycost", Double };
+	Attribute joinatt[] = { IA, SA, SA, IA, SA, DA, SA, IA, IA, IA,
+			ps_supplycost, SA };
+	Schema join_sch("join_sch", outAtts, joinatt);
+
+	J.Run(*pip, *pip2, _s_ps, cnf_p_ps, lit_p_ps);
+
+	Schema sum_sch("sum_sch", 1, &DA);
+	int cnt = clear_pipe(_s_ps, &sum_sch, false);
+	sf.WaitUntilDone();
+	sf2.WaitUntilDone();
+	J.WaitUntilDone();
+	cout << " query4 returned " << cnt << " recs \n";
+
 }
