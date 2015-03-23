@@ -359,3 +359,7 @@ void Record::Print(Schema *mySchema) {
 	cout << "\n";
 }
 
+int Record::GetNumAtts() {
+	return ((int *) bits)[1] / sizeof(int) - 1;
+}
+

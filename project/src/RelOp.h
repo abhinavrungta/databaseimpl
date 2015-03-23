@@ -80,7 +80,7 @@ class Project : public RelationalOp {
 
 class DuplicateRemoval : public RelationalOp {
 	
-	static void *duprem(void *);
+
 	
 	private:
 		pthread_t thread;  //the thread that run method will spawn
@@ -88,6 +88,8 @@ class DuplicateRemoval : public RelationalOp {
 		Pipe *inPipe, *outPipe;
 		Schema *mySchema;
 		void DoDuplicateRemoval();
+		static void *duplicateRemoval(void *);	
+	
 	public:
 		void Run (Pipe &inPipe, Pipe &outPipe, Schema &mySchema) ;
 		void WaitUntilDone () ;
@@ -109,8 +111,9 @@ class Join : public RelationalOp {
 
 	public:
 	void Run (Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record &literal);
-	static void* jswpn(void *);
-	void join();
+	static void* join(void *);
+	void DoJoin();
+//	void join();
 	void WaitUntilDone () ;
 	void Use_n_Pages (int n);
 };
@@ -126,8 +129,8 @@ class Sum : public RelationalOp {
 
 	public:
 	void Run (Pipe &inPipe, Pipe &outPipe, Function &computeMe);
-	static void* sspwn(void*);
-	void doSum();
+	static void* sum(void*);
+	void DoSum();
 	void WaitUntilDone () ;
 	void Use_n_Pages (int n) ;
 };
@@ -143,8 +146,8 @@ class GroupBy : public RelationalOp {
         int nPages;
 
 	public:
-	static void* gspwn(void*);
-	void doGroupBy();
+	static void* groupBy(void*);
+	void DoGroupBy();
 	void Run (Pipe &inPipe, Pipe &outPipe, OrderMaker &groupAtts, Function &computeMe);
 	void WaitUntilDone () ;
 	void Use_n_Pages (int n);
@@ -152,8 +155,18 @@ class GroupBy : public RelationalOp {
 
 
 class WriteOut : public RelationalOp {
+	
+	private:
 	pthread_t thread;
+	Pipe *inPipe;
+	FILE *outFile;	
+	Schema *mySchema;
+	int nPages;
+
 	public:
+
+	static void* writeOut(void*);
+	void DoWriteOut();
 	void Run (Pipe &inPipe, FILE *outFile, Schema &mySchema) ;
 	void WaitUntilDone ();
 	void Use_n_Pages (int n) ;

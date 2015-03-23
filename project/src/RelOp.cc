@@ -3,7 +3,6 @@
 #include <iostream>
 #include <string>
 #include <sstream>
-#include "BigQ.h"
 #include "ComparisonEngine.h"
 #include "DBFile.h"
 #include "Defs.h"
@@ -13,7 +12,7 @@
 
 // -------------------------SELECT FILE -------------------------------------------
 
-void *SelectFile::selectPipe(void *arg) {
+void *SelectFile::selectFile(void *arg) {
 	SelectFile *sf = (SelectFile *) arg;
 
 	//cout << "created thread \n";
@@ -24,7 +23,7 @@ void *SelectFile::selectPipe(void *arg) {
 void SelectFile::DoSelectFile() {
 	Record *tmp = new Record;
 	
-	while (this->inFile->GetNext(*tmp, *(this->cnf), *(this->literal))) {
+	while (this->inFile->GetNext(*tmp, *(this->selOp), *(this->literal))) {
 		this->outPipe->Insert(tmp);
 	}
 
@@ -36,9 +35,9 @@ void SelectFile::DoSelectFile() {
 void SelectFile::Run(DBFile &inFile, Pipe &outPipe, CNF &selOp,	Record &literal) {
 	this->inFile = &inFile;
 	this->outPipe = &outPipe;
-	this->cnf = &selOp;
+	this->selOp = &selOp;
  	this->literal = &literal;
-	pthread_create(&thread, NULL, selectPipe, this);
+	pthread_create(&thread, NULL, selectFile, this);
 } 
 
 void SelectFile::WaitUntilDone() {
@@ -64,8 +63,8 @@ void SelectPipe::DoSelectPipe() {
 	ComparisonEngine comp;
 	// get Record from input pipe, compare with given CNF and push to output pipe.
 	while (this->inPipe->Remove(tmp)) {
-		if (comp.Compare(tmp, this->literal, this->cnf)) {
-			this->outPipe->Insert(tmpRecord);
+		if (comp.Compare(tmp, this->literal, this->selOp)) {
+			this->outPipe->Insert(tmp);
 		}
 		delete tmp;
 		this->outPipe->ShutDown();
@@ -76,7 +75,7 @@ void SelectPipe::Run(Pipe &inPipe, Pipe &outPipe, CNF &selOp, Record &literal) {
 
 	this->inPipe = &inPipe;
 	this->outPipe = &outPipe;
-	this->cnf = &selOp;
+	this->selOp = &selOp;
 	this->literal->Copy(&literal);
 	pthread_create(&thread, NULL, selectPipe, this);
 }
@@ -103,11 +102,11 @@ void *Project::project(void *arg) {
 void Project::DoProject() {
 	Record *tmp = new Record;
 
-	while (this->inPipe->Remove(tmpRecord)) {
+	while (this->inPipe->Remove(tmp)) {
 		tmp->Project(this->keepMe, this->numAttsOutput, this->numAttsInput);
 		this->outPipe->Insert(tmp);
 	}
-	delete tmpRecord;
+	delete tmp;
 	this->outPipe->ShutDown();
 }
 
@@ -132,7 +131,7 @@ void Project::Use_n_Pages(int n) {
 
 // ----------------JOIN---------------------------------------------------------------
 
-void *Join::join(void *arg) {
+void *Join::join(void* arg) {
 	Join *jn = (Join *) arg;
 	jn->DoJoin();
 	return NULL;
@@ -167,8 +166,8 @@ void Join::DoJoin() {
                 int isLeftPipeEmpty = LO->Remove(&RL);
                 int isRightPipeEmpty = RO->Remove(RR);
 
-                int numLeftAttrs = RL.getNumAttrs();
-                int numRightAttrs = RR->getNumAttrs();
+                int numLeftAttrs = RL.GetNumAtts();
+                int numRightAttrs = RR->GetNumAtts();
 
                 int attrsToKeep[numLeftAttrs + numRightAttrs];
              
@@ -246,9 +245,9 @@ void Join::DoJoin() {
 //		rightRelationFIle.Create(fileName, heap, NULL);
 
                 while (inPipeR->Remove(&RR)) {
-                        rightRelationFIle.Add(RR);
+                        rightRelationFile.Add(RR);
                 }
-                rightRelationFIle.Close();
+                rightRelationFile.Close();
 
                 vector<Record*> leftRelationVector;
                 int numPagesAllocatedForLeft = 0;
@@ -283,14 +282,14 @@ void Join::DoJoin() {
                                 // start reading right relation from file when n - 1 buffer pages are full OR pipe is empty
                                 if (numPagesAllocatedForLeft == this->nPages - 1 || isPipeEnded) {
 
-                                        rightRelationFIle.Open(fileName);
-                                        rightRelationFIle.MoveFirst();
+                                        rightRelationFile.Open("tmpL");
+                                        rightRelationFile.MoveFirst();
                                         Record rightRec;
-                                        int isRightRecPresent = rightRelationFIle.GetNext(rightRec);
+                                        int isRightRecPresent = rightRelationFile.GetNext(rightRec);
                                         
                                         Record mergedRecord;
-                                        int numLeftAttrs = leftRelationVector[0]->getNumAttrs();
-                                        int numRightAttrs = rightRec.getNumAttrs();
+                                        int numLeftAttrs = leftRelationVector[0]->GetNumAtts();
+                                        int numRightAttrs = rightRec.GetNumAtts();
                                         int attrsToKeep[numLeftAttrs + numRightAttrs];
                                         int k = 0;
                                         for (int i = 0; i < numLeftAttrs; i++) {
@@ -313,9 +312,9 @@ void Join::DoJoin() {
                                                                 mergedRecCount++;
                                                         }
                                                 }
-                                                isRightRecPresent = rightRelationFIle.GetNext(rightRec);
+                                                isRightRecPresent = rightRelationFile.GetNext(rightRec);
                                         }
-                                        rightRelationFIle.Close();
+                                        rightRelationFile.Close();
 
                                         // flush the vector 
                                         numPagesAllocatedForLeft = 0;
@@ -337,7 +336,7 @@ void Join::DoJoin() {
                         }
                 }
                 cout << "Total Records Merged :: " << mergedRecCount << endl;
-                remove(fileName);
+                remove("tmpL");
         }        
         
         outPipe->ShutDown();
@@ -347,9 +346,9 @@ void Join::Run(Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp, Record &
 	this->inPipeL = &inPipeL;
 	this->inPipeR = &inPipeR;
 	this->outPipe = &outPipe;
-	this->cnf = &selOp;
+	this->selOp = &selOp;
 	this->literal = &literal;
-	pthread_create(&thread, NULL, Helper, this);
+	pthread_create(&thread, NULL, join, this);
 
 }
 
@@ -404,7 +403,7 @@ void Sum::DoSum() {
 
                 Attribute IA = {"int", Int};
                 Schema out_sch("out_sch", 1, &IA);
-                resultRec.ComposeRecord(&out_sch, resultSum.c_str());
+                //resultRec.SuckNextRecord(&out_sch, resultSum.c_str());
         } else {
                 result << doubleSum;
                 resultSum = result.str();
@@ -412,7 +411,7 @@ void Sum::DoSum() {
 
                 Attribute DA = {"double", Double};
                 Schema out_sch("out_sch", 1, &DA);
-                resultRec.ComposeRecord(&out_sch, resultSum.c_str());
+                //resultRec.SuckNextRecord(&out_sch, resultSum.c_str());
         }
         this->outPipe->Insert(&resultRec);
         this->outPipe->ShutDown();
@@ -421,7 +420,7 @@ void Sum::DoSum() {
 void Sum::Run(Pipe &inPipe, Pipe &outPipe, Function &computeMe) {
 	this->inPipe = &inPipe;
 	this->outPipe = &outPipe;
-	this->computeMe = &computeMe;
+	this->function = &computeMe;
 	pthread_create(&thread, NULL, sum, this);
 }
 
@@ -437,7 +436,7 @@ void Sum::Use_n_Pages(int n) {
 
 void *DuplicateRemoval::duplicateRemoval(void *arg) {
 	DuplicateRemoval *dr = (DuplicateRemoval *) arg;
-	dr->Apply();
+	dr->DoDuplicateRemoval();
 	return NULL;
 }
 
@@ -453,7 +452,8 @@ void DuplicateRemoval::DoDuplicateRemoval() {
 
 	Pipe *sortPipe = new Pipe(PIPE_SIZE);
 
-	BigQ *bigQ = new BigQ(*(this->inPipe), *sortPipe, *order, this->nPages);
+	BigQ *bigQ = new BigQ(*(this->inPipe), *sortPipe, *om, this->nPages);
+
 	ComparisonEngine comp;
 
 	Record *temp = new Record;
@@ -462,7 +462,7 @@ void DuplicateRemoval::DoDuplicateRemoval() {
 
 // get output from BigQ.
 
-	if(sortPipe.Remove(tmp)) {
+	if(sortPipe -> Remove(temp)) {
 		//insert the first one
 		bool more = true;
 		while(more) {
@@ -470,9 +470,9 @@ void DuplicateRemoval::DoDuplicateRemoval() {
 			Record *copyMe = new Record();
 			copyMe->Copy(temp);
 			this->outPipe->Insert(copyMe);
-			while(sortPipe.Remove(check)) {
-				if(cmp.Compare(temp, check, om) != 0) { //equal
-					tmp->Copy(check);
+			while(sortPipe->Remove(check)) {
+				if(comp.Compare(temp, check, om) != 0) { //equal
+					temp->Copy(check);
 					more = true;
 					break;
 				}
@@ -501,7 +501,7 @@ void DuplicateRemoval::Use_n_Pages(int n) {
 
 //-----------------------------------GROUP BY---------------------------------------------------
 
-void *GroupBy::groupBy(void *arg) {
+void* GroupBy::groupBy(void *arg) {
 	GroupBy *gb = (GroupBy *) arg;
 	gb->DoGroupBy();
 	return NULL;
@@ -518,9 +518,11 @@ void GroupBy::DoGroupBy() {
         Attribute IA = {"int", Int};
         Schema out_sch_int("out_sch", 1, &IA);
 
+	int runlen = this->nPages;
+
         vector<int> groupByOrderAttrs;
         vector<Type> groupByOrderTypes;
-        params->groupbyOrder->GetOrderMakerAttrs(&groupByOrderAttrs, &groupByOrderTypes);
+        //params->groupbyOrder->GetOrderMakerAttrs(&groupByOrderAttrs, &groupByOrderTypes);
 
         int *projectAttrsToKeep = &groupByOrderAttrs[0];
 
@@ -533,7 +535,7 @@ void GroupBy::DoGroupBy() {
         }
 
         Pipe *bigqOutPipe = new Pipe(100);
-        BigQ bigQ(*params->inputPipe, *bigqOutPipe, *params->groupbyOrder, params->runLength);
+        BigQ bigQ(*(this->inPipe), *(bigqOutPipe), *(this->groupbyOrder), runlen);
 
         ComparisonEngine comparator;
         int intAttrVal;
@@ -546,16 +548,16 @@ void GroupBy::DoGroupBy() {
         int currRecPresent = bigqOutPipe->Remove(&currRec);
         int nextRecPresent = currRecPresent;
         nextRec.Copy(&currRec);
-        int numCurrRecAttrs = currRec.getNumAttrs();
+        int numCurrRecAttrs = currRec.GetNumAtts();
 
         while (nextRecPresent) {
 
-                int orderMakerAnswer = comparator.Compare(&currRec, &nextRec, params->groupbyOrder);
+                int orderMakerAnswer = comparator.Compare(&currRec, &nextRec, this->groupbyOrder);
                 
                 // Perform summation until there is a mismatch
                 if (orderMakerAnswer == 0) {
 
-                        type = params->function->Apply(nextRec, intAttrVal, doubleAttrVal);
+                        type = this->function->Apply(nextRec, intAttrVal, doubleAttrVal);
 
                         if (type == Int) {
                                 intSum += intAttrVal;
@@ -580,14 +582,14 @@ void GroupBy::DoGroupBy() {
                                 result << intSum;
                                 resultSum = result.str();
                                 resultSum.append("|");
-                                groupSumRec.ComposeRecord(&out_sch_int, resultSum.c_str());
+                                //groupSumRec.SuckNextRecord(&out_sch_int, resultSum.c_str());
 
                         } else {
 
                                 result << doubleSum;
                                 resultSum = result.str();
                                 resultSum.append("|");
-                                groupSumRec.ComposeRecord(&out_sch_double, resultSum.c_str());
+                                //groupSumRec.SuckNextRecord(&out_sch_double, resultSum.c_str());
                         }
 
                         // Get a record contaning only group by attributes
@@ -597,7 +599,7 @@ void GroupBy::DoGroupBy() {
                         Record resultRec;
                         resultRec.MergeRecords(&groupSumRec, &currRec, 1, numGroupByAttrs, mergeAttrsToKeep, 1 + numGroupByAttrs, 1);
 
-                        params->outputPipe->Insert(&resultRec);
+                        this->outPipe->Insert(&resultRec);
 
                         currRec.Copy(&nextRec);
                         intSum = 0;
@@ -614,7 +616,7 @@ void GroupBy::DoGroupBy() {
                  result << intSum;
                  resultSum = result.str();
                  resultSum.append("|");
-                 groupSumRec.ComposeRecord(&out_sch_int, resultSum.c_str());
+                 //groupSumRec.SuckNextRecord(&out_sch_int, resultSum.c_str());
                 
         }
         else{
@@ -622,7 +624,7 @@ void GroupBy::DoGroupBy() {
                 result << doubleSum;
                 resultSum = result.str();
                 resultSum.append("|");
-                groupSumRec.ComposeRecord(&out_sch_double, resultSum.c_str());         
+                //groupSumRec.SuckNextRecord(&out_sch_double, resultSum.c_str());         
         }
         
         // Get a record containing only group by attributes
@@ -632,15 +634,15 @@ void GroupBy::DoGroupBy() {
         Record resultRec;
         resultRec.MergeRecords(&groupSumRec, &currRec, 1, numGroupByAttrs, mergeAttrsToKeep, 1 + numGroupByAttrs, 1);
 
-        params->outputPipe->Insert(&resultRec);
-        params->outputPipe->ShutDown();}
+        this->outPipe->Insert(&resultRec);
+        this->outPipe->ShutDown();}
 
 
 void GroupBy::Run(Pipe &inPipe, Pipe &outPipe, OrderMaker &groupAtts, Function &computeMe) {
 	this->inPipe = &inPipe;
 	this->outPipe = &outPipe;
-	this->groupAtts = &groupAtts;
-	this->computeMe = &computeMe;
+	this->groupbyOrder = &groupAtts;
+	this->function = &computeMe;
 	pthread_create(&thread, NULL, groupBy, this);
 }
 
@@ -656,7 +658,7 @@ void GroupBy::Use_n_Pages(int n) {
 
 void *WriteOut::writeOut(void *arg) {
 	WriteOut *wo = (WriteOut *) arg;
-	wo->Apply();
+	wo->DoWriteOut();
 	return NULL;
 }
 
@@ -666,7 +668,7 @@ void WriteOut::DoWriteOut() {
 	ComparisonEngine comp;
 
 	while (this->inPipe->Remove(tmpRecord)) {
-		tmpRecord->Print(this->mySchema, (this->outFile));
+		tmpRecord->Print(this->mySchema);
 	}
 
 	delete tmpRecord;
