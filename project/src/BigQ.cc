@@ -22,6 +22,7 @@ BigQ::BigQ(Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen, bool asc) {
 	time(&seconds);
 	std::stringstream ss;
 	ss << seconds;
+	ss << rand() % 100000;
 	string ts = ss.str();
 	fileName = new char[100];
 	sprintf(fileName, "Phase1%s", ts.c_str());

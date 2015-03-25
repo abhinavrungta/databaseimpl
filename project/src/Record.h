@@ -27,7 +27,6 @@ class Record {
 	friend class BaseTest;
 
 private:
-	char* GetBits();
 	void SetBits(char *bits);
 	void CopyBits(char *bits, int b_len);
 
@@ -36,6 +35,7 @@ public:
 	Record();
 	~Record();
 
+	char* GetBits();
 	// suck the contents of the record fromMe into this; note that after
 	// this call, fromMe will no longer have anything inside of it
 	void Consume(Record *fromMe);
@@ -65,7 +65,11 @@ public:
 	// prints the contents of the record; this requires
 	// that the schema also be given so that the record can be interpreted
 	void Print(Schema *mySchema);
+<<<<<<< HEAD
 
+=======
+	void Print(Schema *mySchema, FILE* out);
+>>>>>>> asmt4
 	int GetNumAtts();
 };
 

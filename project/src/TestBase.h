@@ -181,7 +181,7 @@ protected:
 		char *lineitem = "lineitem";
 
 		char* rel_ptr[] = { nation, region, customer, part, partsupp, orders,
-				lineitem };
+				lineitem, supplier };
 		cout
 				<< " \n** IMPORTANT: MAKE SURE THE INFORMATION BELOW IS CORRECT **\n";
 		cout << " catalog location: \t" << catalog_path << endl;
@@ -190,7 +190,7 @@ protected:
 		cout << " \n\n";
 
 		int findx = 0;
-		while (findx < 1 || findx > 7) {
+		while (findx < 1 || findx > 8) {
 			cout << "\n select table: \n";
 			cout << "\t 1. nation \n";
 			cout << "\t 2. region \n";
@@ -199,6 +199,7 @@ protected:
 			cout << "\t 5. partsupp \n";
 			cout << "\t 6. orders \n";
 			cout << "\t 7. lineitem \n \t ";
+			cout << "\t 8. supplier \n \t ";
 			cin >> findx;
 		}
 
