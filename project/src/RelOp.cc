@@ -36,12 +36,9 @@ void SelectFile::Run(DBFile &inFile, Pipe &outPipe, CNF &selOp,
 	this->cnf = &selOp;
 	this->literal = &literal;
 	pthread_create(&thread, NULL, Helper, this);
->>>>>>> asmt4
 }
 
 void SelectFile::WaitUntilDone() {
-<<<<<<< H
->>>>>>> asmt4
 	pthread_join(thread, NULL);
 }
 
@@ -49,11 +46,9 @@ void SelectFile::Use_n_Pages(int n) {
 	this->nPages = n;
 }
 
-<<<<<<< HEAD
 
 // ------------------- SELECT PIPE ----------------------------------
 
-=======
 void *SelectPipe::Helper(void *arg) {
 	SelectPipe *sf = (SelectPipe *) arg;
 	sf->Apply();
@@ -69,21 +64,18 @@ void SelectPipe::Apply() {
 			this->outPipe->Insert(tmpRecord);
 		}
 		delete tmpRecord;
->>>>>>> asmt4
+
 		this->outPipe->ShutDown();
 	}
 }
 
 void SelectPipe::Run(Pipe &inPipe, Pipe &outPipe, CNF &selOp, Record &literal) {
-<<<<<<< HEAD
 
-=======
 	this->inPipe = &inPipe;
 	this->outPipe = &outPipe;
 	this->cnf = &selOp;
 	this->literal->Copy(&literal);
 	pthread_create(&thread, NULL, Helper, this);
->>>>>>> asmt4
 }
 
 void SelectPipe::WaitUntilDone() {
@@ -94,11 +86,8 @@ void SelectPipe::Use_n_Pages(int n) {
 	this->nPages = n;
 }
 
-<<<<<<< HEAD
-
 //------------------------------PROJECT-----------------------------------------------------
 
-=======
 void *Project::Helper(void *arg) {
 	Project *pr = (Project *) arg;
 	pr->Apply();
@@ -119,16 +108,14 @@ void Project::Apply() {
 
 void Project::Run(Pipe &inPipe, Pipe &outPipe, int *keepMe, int numAttsInput,
 		int numAttsOutput) {
->>>>>>> asmt4
+
 	this->inPipe = &inPipe;
 	this->outPipe = &outPipe;
 	this->keepMe = keepMe;
 	this->numAttsInput = numAttsInput;
 	this->numAttsOutput = numAttsOutput;
-<<<<<<< HEAD
-=======
 	pthread_create(&thread, NULL, Helper, this);
->>>>>>> asmt4
+
 }
 
 void Project::WaitUntilDone() {
@@ -139,9 +126,6 @@ void Project::Use_n_Pages(int n) {
 	this->nPages = n;
 }
 
-<<<<<<< HEAD
-
-=======
 void *Join::Helper(void *arg) {
 	Join *dm = (Join *) arg;
 	dm->Apply();
@@ -566,7 +550,6 @@ void WriteOut::WaitUntilDone() {
 	pthread_join(thread, NULL);
 }
 
->>>>>>> asmt4
 void WriteOut::Use_n_Pages(int n) {
 	this->nPages = n;
 }

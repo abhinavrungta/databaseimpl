@@ -58,10 +58,8 @@ public:
 	Type Apply(Record &toMe, int &intResult, double &doubleResult);
 
 	// template class for apply
-<<<<<<< HEAD
 	template<class T>
 	T Apply(Record& initRecord) {
->>>>>>> asmt4
 		int intResult;
 		double doubleResult;
 		Apply(initRecord, intResult, doubleResult);
@@ -69,14 +67,9 @@ public:
 		return returnsInt ? intResult : doubleResult;
 	}
 
-<<<<<<< HEAD
-	Type resultType() const { return returnsInt ? Int : Double; }
-
-=======
 	Type resultType() {
 		return returnsInt ? Int : Double;
 	}
->>>>>>> asmt4
 };
 
 #endif

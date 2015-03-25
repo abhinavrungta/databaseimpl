@@ -356,8 +356,6 @@ void Record::Print(Schema *mySchema) {
 	cout << "\n";
 }
 
-<<<<<<< HEAD
-=======
 void Record::Print(Schema *mySchema, FILE *out) {
 
 	int n = mySchema->GetNumAtts();
@@ -408,4 +406,3 @@ void Record::Print(Schema *mySchema, FILE *out) {
 int Record::GetNumAtts() {
 	return ((int *) bits)[1] / sizeof(int) - 1;
 }
->>>>>>> asmt4

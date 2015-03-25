@@ -7,10 +7,6 @@
 
 #include "Comparison.h"
 #include "Pipe.h"
-<<<<<<< HEAD
-
-=======
->>>>>>> asmt4
 #include "Function.h"
 #include <sstream>
 #include <stdlib.h>
@@ -25,8 +21,6 @@ class RelationalOp {
 	virtual void WaitUntilDone () = 0;
 
 	// tell us how much internal memory the operation can use
-<<<<<<< HEAD
-=======
 	virtual void Use_n_Pages(int n) = 0;
 
 	virtual void Apply() = 0;
@@ -138,6 +132,5 @@ public:
 	void WaitUntilDone();
 	void Use_n_Pages(int n);
 	void Apply();
->>>>>>> asmt4
 };
 #endif
