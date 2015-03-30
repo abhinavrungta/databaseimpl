@@ -1,8 +1,13 @@
 #ifndef STATISTICS_
 #define STATISTICS_
 #include "ParseTree.h"
+#include <string.h>
+#include <map>
 
 class Statistics {
+
+	map<string, int> *relData;
+	map<string, map <string, int>> *attrData;	
 public:
 	Statistics();
 	Statistics(Statistics &copyMe);	 // Performs deep copy
