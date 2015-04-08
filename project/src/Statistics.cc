@@ -1,10 +1,11 @@
 #include "Statistics.h"
 #include <math.h>
-#include <iostram>
+#include <iostream>
 #include <set>
 #include <fstream>
 #include <sstream>
 
+using namespace std;
 
 Statistics::Statistics() {
 	isCalledFromApply = false;
