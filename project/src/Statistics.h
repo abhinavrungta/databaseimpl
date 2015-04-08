@@ -3,11 +3,14 @@
 #include "ParseTree.h"
 #include <string.h>
 #include <map>
+#include <iostream>
+
+using namespace std;
 
 class Statistics {
 
-	map<string, int> *relData;
-	map<string, map <string, int>> *attrData;	
+	std::map <string, int> *relData;
+	std::map <string, map <string, int> > *attrData; 	
 public:
 	Statistics();
 	Statistics(Statistics &copyMe);	 // Performs deep copy

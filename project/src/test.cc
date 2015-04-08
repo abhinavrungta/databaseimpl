@@ -4,8 +4,17 @@
 #include "Statistics.h"
 #include "ParseTree.h"
 #include <math.h>
-extern "C" struct YY_BUFFER_STATE *yy_scan_string(const char*);
-extern "C" int yyparse(void);
+#ifdef __cplusplus
+extern "C" {
+#endif
+struct YY_BUFFER_STATE *yy_scan_string(const char*);
+#ifdef __cplusplus
+}
+#endif
+// extern "C" {
+
+int yyparse(void);
+
 extern struct AndList *final;
 
 using namespace std;
@@ -540,3 +549,11 @@ int main(int argc, char *argv[]) {
 	}
 
 }
+
+
+
+
+
+
+
+
