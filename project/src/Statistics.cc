@@ -4,20 +4,24 @@
 #include <set>
 #include <fstream>
 #include <sstream>
-
+#include <stdlib.h> // For atoi function
 using namespace std;
 
+// Standard Constructor and Destructor 
+
 Statistics::Statistics() {
-	isCalledFromApply = false;
+	isCalledFromApply = false; 				// Is giving scope error later in the code. Should I put thi sin the header file?
 	isApply = false;
 	relationData = new map <string, int>();
-	attrData = new map <string, map<string, int>>();
+	attrData = new map <string, map<string, int> >();
 }
 
 
 Statistics::Statistics(Statistics &copyMe) {
-	relationData = new map<string, int>(*(copyMe.relationData));
-	attrData = new map<string, map<string, int>> (*(copyMe.attrData));
+	relationData = new map<string, int> (*(copyMe.relationData));       
+	attrData = new map<string, map<string, int> > (*(copyMe.attrData));
+	isCalledFromApply = copyMe.isCalledFromApply;
+	isApply 	  = copyMe.isApply;
 }
 
 
@@ -26,15 +30,16 @@ Statistics::~Statistics() {
 	delete attrData;
 }
 
+
 void Statistics::AddRel(char *relName, int numTuples) {
 	string rel(relName);
 	
-	pair<map<string, int>::iterator, bool> ret = relationData->insert(pair<string, int>(rel, numTuples));
+	pair<map <string, int>::iterator, bool> ret = relationData->insert(pair<string, int>(rel, numTuples));
 
 	if(ret.second == false){
 		cout << "Duplicate" << "\n";		
 		relationData->erase(ret.first);
-		relationData->insert(pair<string, int>(rel, numTuples));
+		relationData->insert(pair<string, int> (rel, numTuples));
 	}
 }
 
@@ -44,28 +49,28 @@ void Statistics::AddAtt(char *relName, char *attName, int numDistincts) {
 	string rName(relName);
 	
 	if(numDistincts == -1){
-		int numTuples = relationData->at(rname);
-		    (*attrData)[rname][aName] = numTuples;
+		int numTuples = relationData->at(rName);
+		(*attrData)[rName][aName] = numTuples;
         }
 	else {
-                (*attrData)[rname][aName] = numDistincts;
+                (*attrData)[rName][aName] = numDistincts;
         }
 }
 
 
 void Statistics::CopyRel(char *oldName, char *newName) {
-	string oldName(oldName);
-	string newName(newName);
+	string oName(oldName);
+	string nName(newName);
 
 	//copy the relation data
 
-	int oldNumTuples = (*relationData)[oldName];
-	(*relationData)[newName] = oldNameTuples;
+	int oldNumTuples = (*relationData)[oName];
+	(*relationData)[nName] = oldNumTuples;
 
-	map<string, int> &oldattrData = (*attrData)[oldName];
+	map<string, int> &oldattrData = (*attrData)[oName];
 
         for (map<string, int>::iterator oldAttrInfo = oldattrData.begin(); oldAttrInfo != oldattrData.end(); ++oldAttrInfo) {       
-		string newAtt = newName;
+		string newAtt = nName;
                 newAtt += "." + oldAttrInfo->first;
                 //cout << (*oldAttrInfo).first << ": " << (*oldAttrInfo).second << endl;
                 (*attrData)[newName][newAtt] = oldAttrInfo->second;
@@ -146,7 +151,7 @@ void Statistics::Write(char *fromWhere) {
 	//actual relation data map
 	for(map <string, int>::iterator entry = relationData->begin(); entry != relationData->end(); entry++){
 		const char *first = entry->first.c_str();
-		int second = entry->second();
+		int second = entry->second;                 // Will this return an integer?
 
 		writeFile << first << "#" << second << "\n";
 	}
@@ -189,7 +194,7 @@ void Statistics::Apply(struct AndList *parseTree, char *relNames[],
 
 double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numToJoin) {
 
-	double resEstimate = 0.0;
+	double resultEstimate = 0.0;
 	
 	struct AndList *currentAnd;	
 	struct OrList *currentOr;
@@ -202,19 +207,19 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
 	string leftAttr;
 	string rightAttr;
 		
-	string joinleftrelation, joinrightrelation;
+	string joinLeftRelation, joinRightRelation;
 
 	bool isJoin = false;
 	bool isJoinPerformed = false;
 
-	bool isDeep = false;
-	bool done = false;
+	bool isDeep = false;			// test bool - remove before final
+	bool done = false;			// test bool - remove before final
 	string prev;
 
-	double resultANDfactor = 1.0;
-	double resultORfactor = 1.0;
+	double resultANDFactor = 1.0;
+	double resultORFactor = 1.0;
 
-	map<string, int> relOpmap;
+	map<string, int> relOpMap;
 
 // And list is structured as a root, an orlist the left and andList to the right.
 // Or list is structured as a second level root, a comparison/tuple on the left and an orlist to the right.
@@ -227,13 +232,14 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
 //
 
 	while(currentAnd != NULL){
+
 		currentOr = currentAnd->left;
 		resultORFactor = 1.0;
 
 		while(currentOr != NULL){
 	
 			isJoin = false;
-			ComparisonOp * currentCompOp = currentOp->left;
+			ComparisonOp * currentCompOp = currentOr->left;   	//Shouldn't this be currentOr? Have changed to currentOr. Let us see what breaks
 
 			//find relation of the left attribute
 			//first attribute has to be a name
@@ -249,7 +255,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
 				
 				for (map<string, map<string, int> >::iterator mapEntry = attrData->begin(); mapEntry != attrData->end(); mapEntry++) {
 					if ((*attrData)[mapEntry->first].count(leftAttr) > 0) {	
-						leftRelation = mapEntry->first;
+						LeftRelation = mapEntry->first;
 						break;
 					}
 				}
@@ -264,7 +270,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
 				//find right relation
 				for (map<string, map<string, int> >::iterator mapEntry = attrData->begin(); mapEntry != attrData->end(); ++mapEntry) {
 					if ((*attrData)[mapEntry->first].count(rightAttr) > 0) {
-						rightRelation = mapEntry->first;
+						RightRelation = mapEntry->first;
 						break;
 					}
 				}
@@ -272,13 +278,13 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
 			
 			if (isJoin == true) {
 				//find distinct counts of both attributes for the relations.
-				double leftDistinctCount = (*attrData)[leftRelation][currentCompOp->left->value];
-				double rightDistinctCount = (*attrData)[rightRelation][currentCompOp->right->value];
+				double leftDistinctCount = (*attrData)[LeftRelation][currentCompOp->left->value];
+				double rightDistinctCount = (*attrData)[RightRelation][currentCompOp->right->value];
 				if (currentCompOp->code == EQUALS) {
 					resultORFactor *=(1.0 - (1.0 / max(leftDistinctCount, rightDistinctCount)));//ORFACTOR??
 				}
-				joinLeftRelation = leftRelation;
-				joinRightRelation = rightRelation;
+				joinLeftRelation  = LeftRelation;
+				joinRightRelation = RightRelation;
 			}
 			else {
 				if (currentCompOp->code == GREATER_THAN || currentCompOp->code == LESS_THAN) {
@@ -286,7 +292,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
 					relOpMap[currentCompOp->left->value] = currentCompOp->code;
 				}
 				if (currentCompOp->code == EQUALS) {
-					resultORFactor *=(1.0- (1.0 / (*attrData)[leftRelation][currentCompOp->left->value]));
+					resultORFactor *=(1.0- (1.0 / (*attrData)[LeftRelation][currentCompOp->left->value]));
 					relOpMap[currentCompOp->left->value] = currentCompOp->code;
 				}
 			}
@@ -297,13 +303,13 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
 		currentAnd = currentAnd->rightAnd;
 	}
 
-	double rightTupleCount = (*relationData)[rightRelation];
+	double rightTupleCount = (*relationData)[RightRelation];
 	if (isJoinPerformed == true) {
 		double leftTupleCount = (*relationData)[joinLeftRelation];
 		resultEstimate = leftTupleCount * rightTupleCount * resultANDFactor;
 	}
 	else {
-		double leftTupleCount = (*relationData)[leftRelation];
+		double leftTupleCount = (*relationData)[LeftRelation];
 		resultEstimate = leftTupleCount * resultANDFactor;
 	}
 	if (isApply) {
@@ -323,7 +329,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
 							if ((relOpMapITR->second == LESS_THAN) || (relOpMapITR->second == GREATER_THAN)) {
 								(*attrData)[joinLeftRelation + "_" + joinRightRelation][distinctCountMapITR->first] = (distinctCountMapITR->second) / 3;
 							}
-							 else if (relOpMapITR->second == EQUALS) {
+							else if (relOpMapITR->second == EQUALS) {
 								if (relOpMapITR->first == distinctCountMapITR->first) { //same attribute on which condition is imposed
 								(*attrData)[joinLeftRelation + "_" + joinRightRelation][distinctCountMapITR->first] = 1;
 								} 
@@ -335,7 +341,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
 
 						break;
 					}
-					 else if (cnt > 1) {
+					else if (cnt > 1) {
 						for (distinctCountMapITR = (*attrData)[relNames[i]].begin(); distinctCountMapITR != (*attrData)[relNames[i]].end(); distinctCountMapITR++) {
 							if (relOpMapITR->second == EQUALS) {
 								if (relOpMapITR->first == distinctCountMapITR->first) {
@@ -371,10 +377,4 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames, int numT
 return resultEstimate;
 }
 
-
-
-
-
-
-}
 

@@ -9,7 +9,10 @@ using namespace std;
 
 class Statistics {
 
-	std::map <string, int> *relData;
+	bool isCalledFromApply;
+	bool isApply; 
+
+	std::map <string, int> *relationData;
 	std::map <string, map <string, int> > *attrData; 	
 public:
 	Statistics();
