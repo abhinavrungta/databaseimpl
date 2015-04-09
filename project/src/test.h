@@ -169,10 +169,10 @@ char *lineitem = "lineitem";
 relation *s, *p, *ps, *n, *li, *r, *o, *c;
 
 void setup() {
-//	dbfile_dir = "/Users/abhinavrungta/gitlab/databaseimpl/dbfile/"; // dir where binary heap files should be stored
-//	tpch_dir = "/Users/abhinavrungta/gitlab/databaseimpl/db/"; // dir where dbgen tpch files (extension *.tbl) can be found
-	dbfile_dir = getenv("dbfile"); // dir where binary heap files should be stored
-	tpch_dir = getenv("tpch"); // dir where dbgen tpch files (extension *.tbl) can be found
+	dbfile_dir = "/Users/abhinavrungta/gitlab/databaseimpl/dbfile/"; // dir where binary heap files should be stored
+	tpch_dir = "/Users/abhinavrungta/gitlab/databaseimpl/db/"; // dir where dbgen tpch files (extension *.tbl) can be found
+//	dbfile_dir = getenv("dbfile"); // dir where binary heap files should be stored
+//	tpch_dir = getenv("tpch"); // dir where dbgen tpch files (extension *.tbl) can be found
 	catalog_path = "catalog";		// full path of the catalog file
 	cout << " \n** IMPORTANT: MAKE SURE THE INFORMATION BELOW IS CORRECT **\n";
 	cout << " catalog location: \t" << catalog_path << endl;

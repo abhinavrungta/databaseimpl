@@ -80,7 +80,7 @@ void q0() {
 	yy_scan_string(cnf);
 	yyparse();
 	double result = s.Estimate(final, relName, 2);
-	if (result != 800000)
+	if (fabs(result - 800000) > 0.1)
 		cout << "error in estimating Q1 before apply \n ";
 	s.Apply(final, relName, 2);
 

@@ -1,8 +1,18 @@
 #ifndef STATISTICS_
 #define STATISTICS_
 #include "ParseTree.h"
+#include <string>
+#include <map>
+
+using namespace std;
 
 class Statistics {
+
+	map<string, int> *relationData;
+	map<string, map<string, int> > *attrData;
+	bool isCalledFrmApply;
+	bool isApply;
+
 public:
 	Statistics();
 	Statistics(Statistics &copyMe);	 // Performs deep copy
