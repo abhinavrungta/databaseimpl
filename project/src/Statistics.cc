@@ -277,6 +277,10 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 	double resultORFactor = 1.0;
 
 	map<string, int> relOpMap;
+	bool isdep = false;
+	string prev;
+	string depStr;
+	int depCtr = 1;
 
 //And list is structured as a root, a orlist the left and andlist to the right.
 //Or list is structured as a root, a comparison the left and orlist to the right.
@@ -288,6 +292,12 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 
 		while (currentOr != NULL) {
 			ComparisonOp *currentCompOp = currentOr->left;
+			if (strcmp((currentCompOp->left->value), prev.c_str()) == 0) {
+				isdep = true;
+				depCtr += 1;
+				depStr = currentCompOp->left->value;
+			}
+			prev = currentCompOp->left->value;
 
 			// find relation of left attribute. first attribute has to be a name
 			if (currentCompOp->left->code != NAME) {
@@ -322,7 +332,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 				}
 
 				if (currentCompOp->code == EQUALS) {
-//					cout << "Comes to T(R1)*T(R2)/max(V(R1,A),V(R2,A))" << endl;
+					// cout << "Comes to T(R1)*T(R2)/max(V(R1,A),V(R2,A))" << endl;
 					//find distinct counts of both attributes for the relations.
 					double leftDistinctCount =
 							(*attrData)[leftRelation][currentCompOp->left->value];
@@ -340,6 +350,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 				}
 			} else {
 				if (currentCompOp->code == EQUALS) {
+					// cout << "Comes to T(R)/V(R,A)" << endl;
 					resultORFactor *=
 							(1.0
 									- (1.0
@@ -355,17 +366,26 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 			currentOr = currentOr->rightOr;
 		}
 
+		if (isdep) {
+			double factor = (1.0
+					- (1.0 * depCtr) / (*attrData)[leftRelation][depStr]);
+			for (int i = 0; i < depCtr; i++) {
+				factor /= (1.0 - (1.0 / (*attrData)[leftRelation][depStr]));
+			}
+			resultORFactor *= factor;
+			depCtr = 1;
+			depStr = "";
+		}
+		isdep = false;
+
 		resultORFactor = 1.0 - resultORFactor;
 		resultANDFactor *= resultORFactor;
+
 		currentAnd = currentAnd->rightAnd;
 	}
 
 	double numTuples = 1.0;
-	cout << "Left Rel Before " << leftRelation << endl;
-	cout << "Right Rel Before " << rightRelation << endl;
 	GetPartitionName(relNames, numToJoin, leftRelation, rightRelation);
-	cout << "Left Rel " << leftRelation << endl;
-	cout << "Right Rel " << rightRelation << endl;
 	map<string, int>::iterator relIter = relationData->begin();
 	for (; relIter != relationData->end(); ++relIter) {
 		if (leftRelation.compare(relIter->first) == 0
@@ -374,7 +394,6 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 		}
 	}
 	resultEstimate = numTuples * resultANDFactor;
-	cout << "Est " << resultEstimate << endl;
 
 	if (isApply) {
 		map<string, int>::iterator relOpMapITR, distinctCountMapITR;

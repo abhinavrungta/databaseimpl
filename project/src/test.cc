@@ -388,7 +388,6 @@ void q8() {
 	yyparse();
 
 	double result = s.Estimate(final, relName, 2);
-	cout << result << endl;
 	if (fabs(result - 48000) > 0.1)
 		cout << "error in estimating Q8\n";
 
@@ -484,7 +483,7 @@ void q11() {
 
 	s.AddRel(relName[0], 200000);
 	s.AddAtt(relName[0], "p_partkey", 200000);
-	s.AddAtt(relName[0], "p_conatiner", 40);
+	s.AddAtt(relName[0], "p_container", 40);
 
 	s.AddRel(relName[1], 6001215);
 	s.AddAtt(relName[1], "l_partkey", 200000);
@@ -498,7 +497,6 @@ void q11() {
 	yyparse();
 
 	double result = s.Estimate(final, relName, 2);
-
 	if (fabs(result - 21432.9) > 0.5)
 		cout << "error in estimating Q11\n";
 	s.Apply(final, relName, 2);
