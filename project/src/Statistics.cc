@@ -4,12 +4,8 @@
 #include <set>
 #include <stdlib.h>
 #include <fstream>
-#include <sstream>
 #include <math.h>
 #include <string.h>
-#include <iomanip>
-#include <typeinfo>
-#define _DEP
 
 Statistics::Statistics() {
 	isApply = false;
@@ -36,7 +32,7 @@ void Statistics::AddRel(char *relName, int numTuples) {
 			pair<string, int>(rel, numTuples));
 
 	if (ret.second) {
-		// if added relation above for first time in relationData.
+		// if added relation above for first time in relationData, create a partition also.
 		list<string> relationsList;
 		relationsList.push_back(rel);
 		partitions->insert(pair<string, list<string> >(rel, relationsList));
@@ -67,7 +63,7 @@ void Statistics::CopyRel(char *_oldName, char *_newName) {
 	int oldNumTuples = (*relationData)[oldName];
 	(*relationData)[newName] = oldNumTuples;
 
-	//copy relation attribute
+	//copy relation attributes
 	map<string, int> &oldattrData = (*attrData)[oldName];
 	for (map<string, int>::iterator oldAttrInfo = oldattrData.begin();
 			oldAttrInfo != oldattrData.end(); ++oldAttrInfo) {
@@ -82,12 +78,14 @@ void Statistics::CopyRel(char *_oldName, char *_newName) {
 	partitions->insert(pair<string, list<string> >(newName, relationsList));
 }
 
+// Remove all info for Relation
 void Statistics::RemoveRel(string relName) {
 	relationData->erase(relName);
 	attrData->erase(relName);
 	partitions->erase(relName);
 }
 
+// Read Stats from File.
 void Statistics::Read(char *fromWhere) {
 	ifstream readFile;
 	readFile.open(fromWhere);
@@ -134,6 +132,7 @@ void Statistics::Read(char *fromWhere) {
 	readFile.close();
 }
 
+// Write Stats to File.
 void Statistics::Write(char *fromWhere) {
 	string fileName(fromWhere);
 	remove(fromWhere);
@@ -207,6 +206,7 @@ void Statistics::Print() {
 	}
 }
 
+// Searches and Sets the left and right partition in which the relNames are divided.
 int Statistics::GetPartitionName(char *relNames[], int numToJoin,
 		string &leftRel, string &rightRel) {
 	map<string, list<string> >::iterator iterP;
@@ -220,7 +220,7 @@ int Statistics::GetPartitionName(char *relNames[], int numToJoin,
 		atleastOneNotFound = false;
 
 		subset = iterP->second;
-		// search the partition. if atleast one element not found, then loop to next above.
+		// search the partition. if atleast one element not found, then loop to next partition above.
 		for (iterSub = subset.begin(); iterSub != subset.end(); ++iterSub) {
 			foundthis = false;
 			for (int i = 0; i < numToJoin; i++) {
@@ -235,7 +235,7 @@ int Statistics::GetPartitionName(char *relNames[], int numToJoin,
 			}
 		}		//end for - inner loop
 		if (!atleastOneNotFound) {
-			// found all elements of this subset.
+			// found all elements of this partition.
 			if (!leftAssigned) {
 				leftRel = iterP->first;
 				leftAssigned = true;
@@ -247,6 +247,7 @@ int Statistics::GetPartitionName(char *relNames[], int numToJoin,
 		}
 	} // end for- outer loop
 	if (numRels != numToJoin) {
+		// if all the relNames were not covered in the two partitions.
 		return -1;
 	}
 	return 1;
@@ -259,6 +260,9 @@ void Statistics::Apply(struct AndList *parseTree, char *relNames[],
 	isApply = false;
 }
 
+// Result Estimate for complex queries.
+// Refer to http://codex.cs.yale.edu/avi/db-book/db6/slide-dir/PDF-dir/ch13.pdf
+// Statistics For Cost Estimation -> Pages 1.36 to 1.48
 double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 		int numToJoin) {
 
@@ -276,11 +280,11 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 	double resultANDFactor = 1.0;
 	double resultORFactor = 1.0;
 
-	map<string, int> relOpMap;
-	bool isdep = false;
-	string prev;
-	string depStr;
-	int depCtr = 1;
+	map<string, int> relOpMap;// Used to keep track of attributes in the query.
+	bool isdependent = false;
+	string prevOperand;
+	string dependentOperandVal;
+	int dependentOperandCtr = 1;
 
 //And list is structured as a root, a orlist the left and andlist to the right.
 //Or list is structured as a root, a comparison the left and orlist to the right.
@@ -292,12 +296,16 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 
 		while (currentOr != NULL) {
 			ComparisonOp *currentCompOp = currentOr->left;
-			if (strcmp((currentCompOp->left->value), prev.c_str()) == 0) {
-				isdep = true;
-				depCtr += 1;
-				depStr = currentCompOp->left->value;
+
+			// If we have an Orlist like this (A = a OR A = b OR A = c).
+			// i.e the estimate for the count of attribute in the relation is dependent on other selection operations.
+			if (strcmp((currentCompOp->left->value), prevOperand.c_str())
+					== 0) {
+				isdependent = true;
+				dependentOperandCtr += 1;
+				dependentOperandVal = currentCompOp->left->value;
 			}
-			prev = currentCompOp->left->value;
+			prevOperand = currentCompOp->left->value;
 
 			// find relation of left attribute. first attribute has to be a name
 			if (currentCompOp->left->code != NAME) {
@@ -343,14 +351,15 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 							(1.0
 									- (1.0
 											/ max(leftDistinctCount,
-													rightDistinctCount))); //ORFACTOR??
+													rightDistinctCount)));
 				} else if (currentCompOp->code == GREATER_THAN
 						|| currentCompOp->code == LESS_THAN) {
 					resultORFactor *= (2.0 / 3.0);		// 1.0 - (1.0 /3.0)
 				}
 			} else {
+				// when rightOperand is INT, DOUBLE OR STRING.
 				if (currentCompOp->code == EQUALS) {
-					// cout << "Comes to T(R)/V(R,A)" << endl;
+					// cout << "Estimate is T(R)/V(R,A)" << endl;
 					resultORFactor *=
 							(1.0
 									- (1.0
@@ -365,18 +374,23 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 			}
 			currentOr = currentOr->rightOr;
 		}
-
-		if (isdep) {
+		// when the attribute is dependent, the resultEstimate is T(R)*(1 - n/V(R,A)) instead of T(R)*(1 - 1/V(R,A))pow(n)
+		// where n is number of distinct counts for A in the query.
+		if (isdependent) {
 			double factor = (1.0
-					- (1.0 * depCtr) / (*attrData)[leftRelation][depStr]);
-			for (int i = 0; i < depCtr; i++) {
-				factor /= (1.0 - (1.0 / (*attrData)[leftRelation][depStr]));
+					- (1.0 * dependentOperandCtr)
+							/ (*attrData)[leftRelation][dependentOperandVal]);
+			for (int i = 0; i < dependentOperandCtr; i++) {
+				factor /=
+						(1.0
+								- (1.0
+										/ (*attrData)[leftRelation][dependentOperandVal]));
 			}
 			resultORFactor *= factor;
-			depCtr = 1;
-			depStr = "";
+			dependentOperandCtr = 1;
+			dependentOperandVal = "";
 		}
-		isdep = false;
+		isdependent = false;
 
 		resultORFactor = 1.0 - resultORFactor;
 		resultANDFactor *= resultORFactor;
@@ -384,8 +398,9 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 		currentAnd = currentAnd->rightAnd;
 	}
 
-	double numTuples = 1.0;
+	// The relations are part of two partitions. Left and Right. Get the Relation Name for the partitions to retrieve Tuple Count for the Estimation.
 	GetPartitionName(relNames, numToJoin, leftRelation, rightRelation);
+	double numTuples = 1.0;
 	map<string, int>::iterator relIter = relationData->begin();
 	for (; relIter != relationData->end(); ++relIter) {
 		if (leftRelation.compare(relIter->first) == 0
@@ -393,14 +408,22 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 			numTuples = numTuples * relIter->second;
 		}
 	}
+	// Get the Estimate by a product of the numTuples and Estimate Factor
 	resultEstimate = numTuples * resultANDFactor;
 
+	// Removes the Left and Right Relation, Adds a new joinedRel.
+	// For the joinedRel -> numberTuples = Estimate. All attrbutes from lRel and rRel with updated distinctCounts.
+	// Reference for DistinctCount Estimation : http://codex.cs.yale.edu/avi/db-book/db6/slide-dir/PDF-dir/ch13.pdf
+	// Statistics For Cost Estimation -> Pages 1.36 to 1.48
 	if (isApply) {
-		map<string, int>::iterator relOpMapITR, distinctCountMapITR;
+		map<string, int>::iterator distinctCountMapITR;
 		string joinedRel = leftRelation;
+
 		if (isJoinPerformed) {
 			joinedRel += "_" + rightRelation;
 		}
+
+		// Update Attribute Data for joinedRel.
 		// iterate thru all attributes in leftRel and calculate new distinct count.
 		for (distinctCountMapITR = (*attrData)[leftRelation].begin();
 				distinctCountMapITR != (*attrData)[leftRelation].end();
@@ -449,8 +472,10 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 			}
 		}
 
+		// Update Relation Data for joinedRel.
 		(*relationData)[joinedRel] = round(resultEstimate);
 
+		// Update Partition Data for joinedRel. Merge the two Partitions.
 		list<string> relationsList;
 		copy(partitions->at(leftRelation).begin(),
 				partitions->at(leftRelation).end(),
@@ -463,6 +488,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 		partitions->insert(
 				pair<string, list<string> >(joinedRel, relationsList));
 
+		// Remove old Relations Data.
 		RemoveRel(leftRelation);
 		RemoveRel(rightRelation);
 	}
