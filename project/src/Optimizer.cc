@@ -14,5 +14,10 @@ Optimizer::Optimizer(struct FuncOperator *finalFunction,
 	this->statistics = s;
 }
 
-QueryPlan* Optimizer::OptimizedQueryPlan() {
+Optimizer::Optimizer() {
+}
+QueryPlan * Optimizer::OptimizedQueryPlan() {
+	return NULL;
+}
+Optimizer::~Optimizer() {
 }

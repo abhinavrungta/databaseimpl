@@ -28,9 +28,9 @@ extern int distinctFunc;  // 1 if there is a DISTINCT in an aggregate query
 
 extern int quit;
 
-char catalog_path[50];
-char dbfile_dir[50];
-char tpch_dir[50];
+char *catalog_path;
+char *dbfile_dir;
+char *tpch_dir;
 
 int main() {
 
@@ -40,9 +40,9 @@ int main() {
 
 	yyparse();
 
-	QueryPlan *queryPlan = new QueryPlan();
+	QueryPlan *queryPlan = new QueryPlan(catalog_path, dbfile_dir, tpch_dir);
 	if (quit) {
-		cout << "yhsql: Thanks for using yhsql. Bye!" << endl;
+		cout << "Exited" << endl;
 		return 0;
 	}
 

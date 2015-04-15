@@ -126,8 +126,12 @@ public:
 };
 
 class QueryPlan {
+	char* catalog_path;
+	char* dbfile_dir;
+	char* tpch_dir;
 public:
 	QueryPlan();
+	QueryPlan(char* catalog_path, char* dbfile_dir, char* tpch_dir);
 	virtual ~QueryPlan();
 
 	QueryPlanNode *root;

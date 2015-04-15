@@ -1,6 +1,7 @@
 #include "QueryPlan.h"
 
 using namespace std;
+map<int, Pipe*> QueryPlanNode::pipesList;
 
 void QueryPlanNode::ExecutePostOrder() {
 	if (this->left)
@@ -133,7 +134,7 @@ void SelectFileQPNode::ExecuteNode() {
 
 // -------------------------------------- project ------------------
 ProjectQPNode::ProjectQPNode(int ip, int op, int *atk, int nKeep, int nTot,
-		Schema * pSch, int nPrintOnScreen) {
+		Schema * pSch) {
 	leftInPipeId = ip;
 	outPipeId = op;
 	attributeList = atk;
@@ -455,6 +456,14 @@ QueryPlan::QueryPlan() {
 	this->outputType = "STDOUT";
 }
 
+QueryPlan::QueryPlan(char* catalog_path, char* dbfile_dir, char* tpch_dir) {
+	this->pipeNum = 0;
+	this->outputType = "STDOUT";
+	this->catalog_path = catalog_path;
+	this->dbfile_dir = dbfile_dir;
+	this->tpch_dir = tpch_dir;
+}
+
 QueryPlan::~QueryPlan() {
 }
 
@@ -467,7 +476,11 @@ int QueryPlan::ExecuteCreateTable(CreateTable *createTable) {
 	DBFile *db = new DBFile;
 	char dbpath[100];
 	sprintf(dbpath, "%s%s.bin", dbfile_dir, createTable->tableName);
-	SortInfo *info = new SortInfo;
+	struct SortInfo {
+		OrderMaker *myOrder;
+		int runLength;
+	};
+	SortInfo *info = new SortInfo();
 	OrderMaker *om = new OrderMaker;
 	if (createTable->type == SORTED) {
 		NameList *sortAtt = createTable->sortAttrList;
@@ -524,11 +537,9 @@ int QueryPlan::ExecuteQueryPlan() {
 	if (strcmp(this->outputType, "NONE") == 0) { //just print out the query plan
 		this->PrintInOrder();
 	} else {
-		WriteOutQPNode *writeOut = new WriteOutQPNode;
+		WriteOutQPNode *writeOut = new WriteOutQPNode(this->root->outPipeId,
+				this->outputType, this->root->outputSchema);
 		writeOut->left = this->root;
-		writeOut->leftInPipeId = writeOut->left->outPipeId;
-		writeOut->outFileName = this->outputType;
-		writeOut->outputSchema = writeOut->left->outputSchema;
 		writeOut->ExecutePostOrder();
 	}
 	return 1;

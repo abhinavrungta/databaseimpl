@@ -29,6 +29,9 @@ tag = -i
 ifdef linux
 tag = -n
 endif
+
+main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o Statistics.o Optimizer.o QueryPlan.o y.tab.o lex.yy.o main.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o Statistics.o Optimizer.o QueryPlan.o y.tab.o lex.yy.o main.o -o $@
 	
 test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o Statistics.o y.tab.o lex.yy.o test.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o Statistics.o y.tab.o lex.yy.o test.o -o $@
@@ -57,6 +60,9 @@ a1test.o :
 		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $$dir; \
 	done
 
+main.o: main.cc
+	$(CC) -g -c main.cc
+	
 test.o: test.cc
 	$(CC) -g -c test.cc
 	
@@ -98,6 +104,12 @@ Function.o: Function.cc
 
 Statistics.o: Statistics.cc
 	$(CC) -g -c Statistics.cc
+	
+Optimizer.o: Optimizer.cc
+	$(CC) -g -c Optimizer.cc
+	
+QueryPlan.o: QueryPlan.cc
+	$(CC) -g -c QueryPlan.cc
 	
 y.tab.o: Parser.y
 	yacc -d Parser.y
