@@ -6,7 +6,7 @@
 #include <math.h>
 extern "C" struct YY_BUFFER_STATE *yy_scan_string(const char*);
 extern "C" int yyparse(void);
-extern struct AndList *final;
+extern struct AndList *boolean;
 
 using namespace std;
 
@@ -79,10 +79,10 @@ void q0() {
 
 	yy_scan_string(cnf);
 	yyparse();
-	double result = s.Estimate(final, relName, 2);
+	double result = s.Estimate(boolean, relName, 2);
 	if (fabs(result - 800000) > 0.1)
 		cout << "error in estimating Q1 before apply \n ";
-	s.Apply(final, relName, 2);
+	s.Apply(boolean, relName, 2);
 
 	// test write and read
 	s.Write(fileName);
@@ -93,7 +93,7 @@ void q0() {
 	cnf = "(s_suppkey>1000)";
 	yy_scan_string(cnf);
 	yyparse();
-	double dummy = s1.Estimate(final, relName, 2);
+	double dummy = s1.Estimate(boolean, relName, 2);
 	if (fabs(dummy * 3.0 - result) > 0.1) {
 		cout << "Read or write or last apply is not correct\n";
 	}
@@ -116,11 +116,11 @@ void q1() {
 	yy_scan_string(cnf);
 	yyparse();
 
-	double result = s.Estimate(final, relName, 1);
+	double result = s.Estimate(boolean, relName, 1);
 	cout << "Your estimation Result  " << result;
 	cout << "\n Correct Answer: 8.5732e+5";
 
-	s.Apply(final, relName, 1);
+	s.Apply(boolean, relName, 1);
 
 	// test write and read
 	s.Write(fileName);
@@ -147,16 +147,16 @@ void q2() {
 	yyparse();
 
 	// Join the first two relations in relName
-	s.Apply(final, relName, 2);
+	s.Apply(boolean, relName, 2);
 
 	cnf = " (c_nationkey = n_nationkey)";
 	yy_scan_string(cnf);
 	yyparse();
 
-	double result = s.Estimate(final, relName, 3);
+	double result = s.Estimate(boolean, relName, 3);
 	if (fabs(result - 1500000) > 0.1)
 		cout << "error in estimating Q2\n";
-	s.Apply(final, relName, 3);
+	s.Apply(boolean, relName, 3);
 
 	s.Write(fileName);
 
@@ -187,24 +187,24 @@ void q3() {
 	char *cnf = "(s.s_nationkey = n1.n_nationkey)";
 	yy_scan_string(cnf);
 	yyparse();
-	s.Apply(final, set1, 2);
+	s.Apply(boolean, set1, 2);
 
 	char *set2[] = { "c", "n2" };
 	cnf = "(c.c_nationkey = n2.n_nationkey)";
 	yy_scan_string(cnf);
 	yyparse();
-	s.Apply(final, set2, 2);
+	s.Apply(boolean, set2, 2);
 
 	char *set3[] = { "c", "s", "n1", "n2" };
 	cnf = " (n1.n_nationkey = n2.n_nationkey )";
 	yy_scan_string(cnf);
 	yyparse();
 
-	double result = s.Estimate(final, set3, 4);
+	double result = s.Estimate(boolean, set3, 4);
 	if (fabs(result - 60000000.0) > 0.1)
 		cout << "error in estimating Q3\n";
 
-	s.Apply(final, set3, 4);
+	s.Apply(boolean, set3, 4);
 
 	s.Write(fileName);
 
@@ -245,30 +245,30 @@ void q4() {
 	char *set1[] = { "p", "ps" };
 	yy_scan_string(cnf);
 	yyparse();
-	s.Apply(final, set1, 2);
+	s.Apply(boolean, set1, 2);
 
 	char *set2[] = { "s", "p", "ps" };
 	cnf = "(s.s_suppkey = ps.ps_suppkey)";
 	yy_scan_string(cnf);
 	yyparse();
-	s.Apply(final, set2, 3);
+	s.Apply(boolean, set2, 3);
 
 	char *set3[] = { "s", "p", "ps", "n" };
 	cnf = " (s.s_nationkey = n.n_nationkey)";
 	yy_scan_string(cnf);
 	yyparse();
-	s.Apply(final, set3, 4);
+	s.Apply(boolean, set3, 4);
 
 	char *set4[] = { "s", "p", "ps", "n", "r" };
 	cnf = "(n.n_regionkey = r.r_regionkey) AND (r.r_name = 'AMERICA') ";
 	yy_scan_string(cnf);
 	yyparse();
 
-	double result = s.Estimate(final, set4, 5);
+	double result = s.Estimate(boolean, set4, 5);
 	if (fabs(result - 3200) > 0.1)
 		cout << "error in estimating Q4\n";
 
-	s.Apply(final, set4, 5);
+	s.Apply(boolean, set4, 5);
 	s.Write(fileName);
 }
 
@@ -292,18 +292,18 @@ void q5() {
 			"(c_mktsegment = 'BUILDING')  AND (c_custkey = o_custkey)  AND (o_orderdate < '1995-03-1')";
 	yy_scan_string(cnf);
 	yyparse();
-	s.Apply(final, relName, 2);
+	s.Apply(boolean, relName, 2);
 
 	cnf = " (l_orderkey = o_orderkey) ";
 	yy_scan_string(cnf);
 	yyparse();
 
-	double result = s.Estimate(final, relName, 3);
+	double result = s.Estimate(boolean, relName, 3);
 
 	if (fabs(result - 400081) > 0.1)
 		cout << "error in estimating Q5\n";
 
-	s.Apply(final, relName, 3);
+	s.Apply(boolean, relName, 3);
 
 	s.Write(fileName);
 
@@ -328,17 +328,17 @@ void q6() {
 	char *cnf = " (s_suppkey = ps_suppkey) ";
 	yy_scan_string(cnf);
 	yyparse();
-	s.Apply(final, relName, 2);
+	s.Apply(boolean, relName, 2);
 
 	cnf = " (s_nationkey = n_nationkey)  AND (n_name = 'AMERICA')   ";
 	yy_scan_string(cnf);
 	yyparse();
 
-	double result = s.Estimate(final, relName, 3);
+	double result = s.Estimate(boolean, relName, 3);
 
 	if (fabs(result - 32000) > 0.1)
 		cout << "error in estimating Q6\n";
-	s.Apply(final, relName, 3);
+	s.Apply(boolean, relName, 3);
 
 	s.Write(fileName);
 
@@ -359,11 +359,11 @@ void q7() {
 
 	yy_scan_string(cnf);
 	yyparse();
-	double result = s.Estimate(final, relName, 2);
+	double result = s.Estimate(boolean, relName, 2);
 	if (fabs(result - 2000405) > 0.1)
 		cout << "error in estimating Q7\n";
 
-	s.Apply(final, relName, 2);
+	s.Apply(boolean, relName, 2);
 	s.Write(fileName);
 
 }
@@ -387,11 +387,11 @@ void q8() {
 	yy_scan_string(cnf);
 	yyparse();
 
-	double result = s.Estimate(final, relName, 2);
+	double result = s.Estimate(boolean, relName, 2);
 	if (fabs(result - 48000) > 0.1)
 		cout << "error in estimating Q8\n";
 
-	s.Apply(final, relName, 2);
+	s.Apply(boolean, relName, 2);
 
 	s.Write(fileName);
 
@@ -416,17 +416,17 @@ void q9() {
 			"(p_partkey=ps_partkey) AND (p_name = 'dark green antique puff wheat') ";
 	yy_scan_string(cnf);
 	yyparse();
-	s.Apply(final, relName, 2);
+	s.Apply(boolean, relName, 2);
 
 	cnf = " (s_suppkey = ps_suppkey) ";
 	yy_scan_string(cnf);
 	yyparse();
 
-	double result = s.Estimate(final, relName, 3);
+	double result = s.Estimate(boolean, relName, 3);
 	if (fabs(result - 4) > 0.5)
 		cout << "error in estimating Q9\n";
 
-	s.Apply(final, relName, 3);
+	s.Apply(boolean, relName, 3);
 
 	s.Write(fileName);
 
@@ -454,23 +454,23 @@ void q10() {
 	char *cnf = "(c_custkey = o_custkey)  AND (o_orderdate > '1994-01-23') ";
 	yy_scan_string(cnf);
 	yyparse();
-	s.Apply(final, relName, 2);
+	s.Apply(boolean, relName, 2);
 
 	cnf = " (l_orderkey = o_orderkey) ";
 	yy_scan_string(cnf);
 	yyparse();
 
-	s.Apply(final, relName, 3);
+	s.Apply(boolean, relName, 3);
 
 	cnf = "(c_nationkey = n_nationkey) ";
 	yy_scan_string(cnf);
 	yyparse();
 
-	double result = s.Estimate(final, relName, 4);
+	double result = s.Estimate(boolean, relName, 4);
 	if (fabs(result - 2000405) > 0.1)
 		cout << "error in estimating Q10\n";
 
-	s.Apply(final, relName, 4);
+	s.Apply(boolean, relName, 4);
 
 	s.Write(fileName);
 
@@ -496,10 +496,10 @@ void q11() {
 	yy_scan_string(cnf);
 	yyparse();
 
-	double result = s.Estimate(final, relName, 2);
+	double result = s.Estimate(boolean, relName, 2);
 	if (fabs(result - 21432.9) > 0.5)
 		cout << "error in estimating Q11\n";
-	s.Apply(final, relName, 2);
+	s.Apply(boolean, relName, 2);
 
 	s.Write(fileName);
 

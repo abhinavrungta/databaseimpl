@@ -36,6 +36,31 @@ Attribute *Schema::GetAtts() {
 	return myAtts;
 }
 
+void Schema::UpdateSchemaForAlias(char *alias) {
+	for (int i = 0; i < numAtts; i++) {
+		char *newName = new char[strlen(alias) + strlen(myAtts[i].name) + 2];
+		sprintf(newName, "%s.%s", alias, myAtts[i].name);
+		myAtts[i].name = newName;
+	}
+}
+
+void Schema::Print() {
+	for (int i = 0; i < numAtts; i++) {
+		cout << "\t" << myAtts[i].name << ": ";
+		switch (myAtts[i].myType) {
+		case Int:
+			cout << "INT" << endl;
+			break;
+		case Double:
+			cout << "DOUBLE" << endl;
+			break;
+		case String:
+			cout << "STRING" << endl;
+			break;
+		}
+	}
+}
+
 Schema::Schema(char *fpath, int num_atts, Attribute *atts) {
 	fileName = strdup(fpath);
 	numAtts = num_atts;

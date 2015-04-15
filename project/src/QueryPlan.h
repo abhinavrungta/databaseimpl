@@ -65,10 +65,9 @@ public:
 class ProjectQPNode: public QueryPlanNode {
 public:
 	int * attributeList;
-	int iAtttributesToKeep, iTotalAttributes, bPrintOnScreen;
+	int iAtttributesToKeep, iTotalAttributes;
 
-	ProjectQPNode(int ip, int op, int *atk, int nKeep, int nTot, Schema * pSch,
-			int nPrintOnScreen);
+	ProjectQPNode(int ip, int op, int *atk, int nKeep, int nTot, Schema * pSch);
 	~ProjectQPNode();
 	void PrintNode();
 	void ExecuteNode();
@@ -90,7 +89,6 @@ public:
 class SumQPNode: public QueryPlanNode {
 public:
 	Function * func;
-	bool bPrintOnScreen;
 
 	SumQPNode(int ip, int op, Function *pF, bool bPrint);
 	~SumQPNode();
@@ -111,9 +109,7 @@ public:
 
 class DistinctQPNode: public QueryPlanNode {
 public:
-	int bPrintOnScreen;
-
-	DistinctQPNode(int ip, int op, Schema * pSch, int nPrintOnScreen);
+	DistinctQPNode(int ip, int op, Schema * pSch);
 	~DistinctQPNode();
 	void PrintNode();
 	void ExecuteNode();
