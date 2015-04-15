@@ -280,7 +280,7 @@ double Statistics::Estimate(struct AndList *parseTree, char **relNames,
 	double resultANDFactor = 1.0;
 	double resultORFactor = 1.0;
 
-	map<string, int> relOpMap;// Used to keep track of attributes in the query.
+	map<string, int> relOpMap; // Used to keep track of attributes in the query.
 	bool isdependent = false;
 	string prevOperand;
 	string dependentOperandVal;

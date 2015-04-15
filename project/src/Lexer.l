@@ -35,6 +35,32 @@ void yyerror(char*s);
 
 %%
 
+"CREATE"		return (CREATE);
+
+"TABLE"			return (TABLE);
+
+"INTEGER"		return (TKINTEGER);
+
+"DOUBLE" 		return (TKDOUBLE);
+
+"STRING"		return (TKSTRING);
+
+"HEAP"			return (TKHEAP);
+
+"SORTED"		return (TKSORTED);
+
+"ON"			return (ON);
+
+"INSERT"		return (INSERT);
+
+"INTO"			return (INTO);
+
+"DROP"			return (DROP);
+
+"SET"			return (SET);
+
+"OUTPUT"		return (OUTPUT);
+
 "SELECT"		return(SELECT);
 
 "FROM"			return(FROM);
@@ -55,6 +81,9 @@ void yyerror(char*s);
 
 "AS"			return(AS);
 
+"QUIT"			return(QUIT);
+"quit"			return(QUIT);
+
 "("			return('(');
 
 "<"                     return('<');
@@ -74,6 +103,8 @@ void yyerror(char*s);
 "*"    	        	return('*');
 
 ","    	        	return(',');
+
+";"					return(';');
 
 -?[0-9]+ 	       {yylval.actualChars = strdup(yytext);
   			return(Int); 

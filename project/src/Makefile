@@ -30,11 +30,11 @@ ifdef linux
 tag = -n
 endif
 	
-test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o Statistics.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o test.o
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o Statistics.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o test.o -o $@
+test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o Statistics.o y.tab.o lex.yy.o test.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o Statistics.o y.tab.o lex.yy.o test.o -o $@
 
-a3test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o a3test.o gtest-all.o gtest_main.o
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o a3test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o y.tab.o yyfunc.tab.o lex.yy.o lex.yyfunc.o $(A3OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
+a3test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o y.tab.o lex.yy.o a3test.o gtest-all.o gtest_main.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o a3test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o y.tab.o lex.yy.o $(A3OBJECTS_TESTS) gtest-all.o gtest_main.o -o $@
 
 a3test.o :
 	for dir in $(A3TESTS); do \
@@ -103,17 +103,9 @@ y.tab.o: Parser.y
 	yacc -d Parser.y
 	g++ -c y.tab.c
 
-yyfunc.tab.o: ParserFunc.y
-	yacc -p "yyfunc" -b "yyfunc" -d ParserFunc.y
-	g++ -c yyfunc.tab.c
-
 lex.yy.o: Lexer.l
 	lex  Lexer.l
 	gcc  -c lex.yy.c
-
-lex.yyfunc.o: LexerFunc.l
-	lex -Pyyfunc LexerFunc.l
-	gcc  -c lex.yyfunc.c
 
 gtest-all.o : $(FUSED_GTEST_H) $(FUSED_GTEST_ALL_CC)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(FUSED_GTEST_DIR)/gtest/gtest-all.cc
@@ -125,11 +117,8 @@ clean:
 	rm -f *.o
 	rm -f *.out
 	rm -f y.tab.c
-	rm -f yyfunc.tab.c
 	rm -f lex.yy.c
-	rm -f lex.yyfunc.c
 	rm -f y.tab.h
-	rm -f yyfunc.tab.h
 	rm -rf a1test
 	rm -rf a2test
 	rm -rf a3test

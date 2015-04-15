@@ -10,6 +10,16 @@
 	extern "C" int yylex();
 	extern "C" int yyparse();
 	extern "C" void yyerror(char *s);
+  	
+  	//these for updata table
+  	struct CreateTable *createTable;
+  	//struct AttrList *attrList;
+  	struct InsertFile *insertFile;
+  	
+  	//used for drop table
+	char *dropTableName;
+	//used for output
+	char *setOutPut;
   
 	// these data structures hold the result of the parsing
 	struct FuncOperator *finalFunction; // the aggregate function (NULL if no agg)
@@ -19,11 +29,16 @@
 	struct NameList *attsToSelect; // the set of attributes in the SELECT (NULL if no such atts)
 	int distinctAtts; // 1 if there is a DISTINCT in a non-aggregate query 
 	int distinctFunc;  // 1 if there is a DISTINCT in an aggregate query
-
+	int quit;    //1 to quit
 %}
 
 // this stores all of the types returned by production rules
 %union {
+	struct CreateTable *myCreateTable;
+  	struct AttrList *myAttrList;
+  	struct InsertFile *myInsertFile;
+	struct Attr *myAttr;
+	
  	struct FuncOperand *myOperand;
 	struct FuncOperator *myOperator; 
 	struct TableList *myTables;
@@ -40,6 +55,22 @@
 %token <actualChars> Float
 %token <actualChars> Int
 %token <actualChars> String
+
+%token CREATE
+%token TABLE
+%token TKHEAP
+%token TKSORTED 
+%token ON
+%token TKINTEGER
+%token TKDOUBLE
+%token TKSTRING
+%token INSERT
+%token INTO
+%token DROP
+%token SET
+%token OUTPUT
+%token QUIT
+
 %token SELECT
 %token GROUP 
 %token DISTINCT
@@ -51,6 +82,12 @@
 %token AND
 %token OR
 
+%type <myCreateTable> Create
+%type <myInsertFile> Insert
+%type <actualChars> Drop
+%type <actualChars> Set
+%type <myAttrList> AttrList
+%type <myAttr> Attr
 %type <myOrList> OrList
 %type <myAndList> AndList
 %type <myOperand> SimpleExp
@@ -61,6 +98,7 @@
 %type <myTables> Tables
 %type <myBoolOperand> Literal
 %type <myNames> Atts
+
 
 %start SQL
 
@@ -74,14 +112,110 @@
 
 %%
 
-SQL: SELECT WhatIWant FROM Tables WHERE AndList
+SQL: Create
+{ 
+	createTable = $1;
+}
+| Insert 
+{	
+ 	insertFile = $1;
+}
+| Drop 
+{
+	dropTableName = $1;
+}
+| Set 
+{
+	setOutPut = $1;
+}
+| QUIT ';'
+{	
+	quit = 1;
+}
+| Query
+;
+
+Create: CREATE TABLE Name '(' AttrList ')' AS TKHEAP ';'
+{
+	$$ = (struct CreateTable *) malloc (sizeof (struct CreateTable));
+	$$->tableName = $3;
+	$$->type = HEAP;
+	$$->attrList = $5;
+	$$->sortAttrList = NULL;
+}
+
+|  CREATE TABLE Name '(' AttrList ')' AS TKSORTED ON Atts ';'
+{
+	$$ = (struct CreateTable *) malloc (sizeof (struct CreateTable));
+	$$->tableName = $3;
+	$$->type = SORTED;
+	$$->attrList = $5;
+	$$->sortAttrList = $10;
+};
+
+AttrList: Attr
+{
+	$$ = (struct AttrList *) malloc (sizeof (struct AttrList));
+	$$->attr = $1;
+	$$->next = NULL;
+}
+
+| Attr ',' AttrList
+{
+	$$ = (struct AttrList *) malloc (sizeof (struct AttrList));
+	$$->attr = $1;
+	$$->next = $3;
+};
+
+Attr: Name TKINTEGER
+{
+	$$ = (struct Attr *) malloc (sizeof (struct Attr));
+	$$->attrName = $1;
+	$$->type = INT;
+}
+| Name TKDOUBLE
+{
+	$$ = (struct Attr *) malloc (sizeof (struct Attr));
+	$$->attrName = $1;
+	$$->type = DOUBLE;
+}
+| Name TKSTRING
+{
+	$$ = (struct Attr *) malloc (sizeof (struct Attr));
+	$$->attrName = $1;
+	$$->type = STRING;
+};
+
+Insert: INSERT String INTO Name ';'
+{
+	$$ = (struct InsertFile *) malloc (sizeof (struct InsertFile));
+	$$->fileName = $2;
+	$$->tableName = $4;
+};
+
+Drop: DROP TABLE Name ';'
+{
+	$$ = $3;
+};
+
+Set: SET OUTPUT String ';'
+{
+	$$ = $3;
+}
+|	SET OUTPUT Name ';'
+{
+	$$ = $3;
+};
+
+
+Query: SELECT WhatIWant FROM Tables WHERE AndList 
 {
 	tables = $4;
 	boolean = $6;	
 	groupingAtts = NULL;
 }
 
-| SELECT WhatIWant FROM Tables WHERE AndList GROUP BY Atts
+| SELECT WhatIWant FROM Tables WHERE AndList GROUP BY Atts 
 {
 	tables = $4;
 	boolean = $6;	
@@ -249,6 +383,16 @@ AndList: '(' OrList ')' AND AndList
         $$->left = $2;
         $$->rightAnd = NULL;
 }
+
+| '(' OrList AND OrList ')' 
+{
+		$$ = (struct AndList *) malloc (sizeof (struct AndList));
+		$$->left = $2;
+
+		$$->rightAnd = (struct AndList *) malloc (sizeof (struct AndList));
+		$$->rightAnd->left = $4;
+		$$->rightAnd->rightAnd = NULL;
+}
 ;
 
 OrList: Condition OR OrList
@@ -361,4 +505,3 @@ Float
 ;
 
 %%
-
