@@ -176,6 +176,7 @@ Schema::Schema(char *fName, char *relName) {
 
 	fclose(foo);
 }
+
 Schema::Schema(Schema *left, Schema*right) {
 	int leftAtts = left->numAtts;
 	int rightAtts = right->numAtts;
@@ -193,6 +194,7 @@ Schema::Schema(Schema *left, Schema*right) {
 		myAtts[i + leftAtts] = right->myAtts[i];
 	}
 }
+
 Schema::~Schema() {
 	delete[] myAtts;
 	myAtts = 0;

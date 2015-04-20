@@ -1,6 +1,10 @@
 #include "QueryPlan.h"
 
 using namespace std;
+extern char *catalog_path;
+extern char *dbfile_dir;
+extern char *tpch_dir;
+
 map<int, Pipe*> QueryPlanNode::pipesList;
 
 void QueryPlanNode::ExecutePostOrder() {
@@ -11,15 +15,21 @@ void QueryPlanNode::ExecutePostOrder() {
 	this->ExecuteNode();
 }
 
+void QueryPlanNode::CreatePipe() {
+	pipesList[outPipeId] = new Pipe(QUERY_PIPE_SIZE);
+}
+
 // -------------------------------------- select pipe ------------------
 SelectPipeQPNode::SelectPipeQPNode() {
 }
 
-SelectPipeQPNode::SelectPipeQPNode(int in, int out, CNF* pCNF, Record * pLit) {
+SelectPipeQPNode::SelectPipeQPNode(int in, int out, CNF* pCNF, Record * pLit,
+		Schema * pSch) {
 	leftInPipeId = in;
 	outPipeId = out;
 	cnf = pCNF;
 	literal = pLit;
+	outputSchema = pSch;
 	pipesList[outPipeId] = new Pipe(QUERY_PIPE_SIZE);
 }
 
@@ -78,18 +88,19 @@ SelectFileQPNode::SelectFileQPNode() {
 }
 
 SelectFileQPNode::SelectFileQPNode(string inFile, int out, CNF* pCNF,
-		Record * pLit) {
+		Record * pLit, Schema *pScH) {
 	sFileName = inFile;
 	outPipeId = out;
 	cnf = pCNF;
 	literal = pLit;
+	outputSchema = pScH;
 	pipesList[outPipeId] = new Pipe(QUERY_PIPE_SIZE);
 }
 
 SelectFileQPNode::~SelectFileQPNode() {
-	if (this->left)
+	if (this->left != NULL)
 		delete this->left;
-	if (this->right)
+	if (this->right != NULL)
 		delete this->right;
 
 	if (cnf) {
@@ -140,6 +151,7 @@ void SelectFileQPNode::ExecuteNode() {
 
 // -------------------------------------- project ------------------
 ProjectQPNode::ProjectQPNode() {
+
 }
 
 ProjectQPNode::ProjectQPNode(int ip, int op, int *atk, int nKeep, int nTot,
@@ -254,11 +266,13 @@ void JoinQPNode::ExecuteNode() {
 GroupByQPNode::GroupByQPNode() {
 }
 
-GroupByQPNode::GroupByQPNode(int ip, int op, Function *pF, OrderMaker *pOM) {
+GroupByQPNode::GroupByQPNode(int ip, int op, Function *pF, OrderMaker *pOM,
+		Schema *pSch) {
 	leftInPipeId = ip;
 	outPipeId = op;
 	func = pF;
 	orderMaker = pOM;
+	outputSchema = pSch;
 	pipesList[outPipeId] = new Pipe(QUERY_PIPE_SIZE);
 }
 
@@ -320,10 +334,11 @@ void GroupByQPNode::ExecuteNode() {
 SumQPNode::SumQPNode() {
 }
 
-SumQPNode::SumQPNode(int ip, int op, Function *pF, bool bPrint) {
+SumQPNode::SumQPNode(int ip, int op, Function *pF, bool bPrint, Schema *pSch) {
 	leftInPipeId = ip;
 	outPipeId = op;
 	func = pF;
+	outputSchema = pSch;
 	pipesList[outPipeId] = new Pipe(QUERY_PIPE_SIZE);
 }
 
@@ -480,14 +495,6 @@ QueryPlan::QueryPlan() {
 	this->outputType = "STDOUT";
 }
 
-QueryPlan::QueryPlan(char* catalog_path, char* dbfile_dir, char* tpch_dir) {
-	this->pipeNum = 0;
-	this->outputType = "STDOUT";
-	this->catalog_path = catalog_path;
-	this->dbfile_dir = dbfile_dir;
-	this->tpch_dir = tpch_dir;
-}
-
 QueryPlan::~QueryPlan() {
 }
 
@@ -561,6 +568,7 @@ int QueryPlan::ExecuteQueryPlan() {
 	if (strcmp(this->outputType, "NONE") == 0) { //just print out the query plan
 		this->PrintInOrder();
 	} else {
+		this->PrintInOrder();
 		WriteOutQPNode *writeOut = new WriteOutQPNode(this->root->outPipeId,
 				this->outputType, this->root->outputSchema);
 		writeOut->left = this->root;

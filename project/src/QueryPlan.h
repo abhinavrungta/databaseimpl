@@ -26,15 +26,15 @@ public:
 	// left and right children (tree structure)
 	QueryPlanNode * left;
 	QueryPlanNode * right;
-	QueryPlanNode * parent;
 
 	QueryPlanNode() :
 			leftInPipeId(-1), outPipeId(-1), left(
-			NULL), right(NULL), outputSchema(NULL), parent(NULL) {
+			NULL), right(NULL), outputSchema(NULL) {
 	}
 
 	virtual void PrintNode() = 0;
 	void ExecutePostOrder();
+	void CreatePipe();
 	virtual void ExecuteNode() = 0;
 	virtual ~QueryPlanNode() {
 	}
@@ -46,7 +46,7 @@ public:
 	Record * literal;
 
 	SelectPipeQPNode();
-	SelectPipeQPNode(int in, int out, CNF* pCNF, Record * pLit);
+	SelectPipeQPNode(int in, int out, CNF* pCNF, Record * pLit, Schema * pSch);
 	~SelectPipeQPNode();
 	void PrintNode();
 	void ExecuteNode();
@@ -59,7 +59,8 @@ public:
 	Record * literal;
 
 	SelectFileQPNode();
-	SelectFileQPNode(string inFile, int out, CNF* pCNF, Record * pLit);
+	SelectFileQPNode(string inFile, int out, CNF* pCNF, Record * pLit,
+			Schema * pSch);
 	~SelectFileQPNode();
 	void PrintNode();
 	void ExecuteNode();
@@ -82,6 +83,7 @@ public:
 	int rightInPipeId;
 	CNF* cnf;
 	Record * literal;
+	JoinQPNode * parent;
 
 	JoinQPNode();
 	JoinQPNode(int ip1, int ip2, int op, CNF* pCNF, Schema * pSch,
@@ -96,7 +98,7 @@ public:
 	Function * func;
 
 	SumQPNode();
-	SumQPNode(int ip, int op, Function *pF, bool bPrint);
+	SumQPNode(int ip, int op, Function *pF, bool bPrint, Schema * pSch);
 	~SumQPNode();
 	void PrintNode();
 	void ExecuteNode();
@@ -108,7 +110,7 @@ public:
 	OrderMaker * orderMaker;
 
 	GroupByQPNode();
-	GroupByQPNode(int ip, int op, Function *pF, OrderMaker *pOM);
+	GroupByQPNode(int ip, int op, Function *pF, OrderMaker *pOM, Schema * pSch);
 	~GroupByQPNode();
 	void PrintNode();
 	void ExecuteNode();
@@ -140,7 +142,6 @@ class QueryPlan {
 	char* tpch_dir;
 public:
 	QueryPlan();
-	QueryPlan(char* catalog_path, char* dbfile_dir, char* tpch_dir);
 	virtual ~QueryPlan();
 
 	QueryPlanNode *root;

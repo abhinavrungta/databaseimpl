@@ -40,7 +40,7 @@ int main() {
 
 	yyparse();
 
-	QueryPlan *queryPlan = new QueryPlan(catalog_path, dbfile_dir, tpch_dir);
+	QueryPlan *queryPlan = new QueryPlan();
 	if (quit) {
 		cout << "Exited" << endl;
 		return 0;
@@ -65,7 +65,6 @@ int main() {
 		//now we have all the info in the above data structure
 		Statistics *s = new Statistics();
 		s->LoadAllStatistics();
-
 		Optimizer optimizer(finalFunction, tables, boolean, groupingAtts,
 				attsToSelect, distinctAtts, distinctFunc, s);
 
@@ -77,6 +76,7 @@ int main() {
 
 		time_t t1;
 		time(&t1);
+		cout << "Exec Plan" << endl;
 		queryPlan->ExecuteQueryPlan();
 		time_t t2;
 		time(&t2);

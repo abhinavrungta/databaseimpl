@@ -142,12 +142,9 @@ vector<AndList*>* Optimizer::OptimizeJoinOrder(vector<AndList*> joins) {
 				string rVal = r->value;
 				this->statistics->GetRelation(lVal, rel1);
 				this->statistics->GetRelation(rVal, rel2);
-				cout << rel1 << endl;
-				cout << rel2 << endl;
 
 				char *estrels[] = { (char*) rel1.c_str(), (char*) rel2.c_str() };
-				double cost = this->statistics->Estimate(andList, estrels,
-						size * 2);
+				double cost = this->statistics->Estimate(andList, estrels, 2);
 				if (choosePos == -1 || cost < smallest) {
 					smallest = cost;
 					left_rel = rel1;
@@ -160,7 +157,7 @@ vector<AndList*>* Optimizer::OptimizeJoinOrder(vector<AndList*> joins) {
 			orderedAndList->push_back(chooseAndList);
 			char *aplyrels[] = { (char*) left_rel.c_str(),
 					(char*) right_rel.c_str() };
-			this->statistics->Apply(chooseAndList, aplyrels, size * 2);
+			this->statistics->Apply(chooseAndList, aplyrels, 2);
 
 			joins.erase(joins.begin() + choosePos);
 		}
@@ -262,39 +259,35 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 		list = list->next;
 	}
 
-	cout << "checkpoint 1" << endl;
 	vector<AndList*> joins;
 	vector<AndList*> selects, selAboveJoin;
 	GetJoinsAndSelects(joins, selects, selAboveJoin);
-	printAndListVector(&joins);
-	printAndListVector(&selAboveJoin);
-	printAndListVector(&selects);
-	cout << "checkpoint 2" << endl;
 	map<string, AndList*>* selectors = this->OptimizeSelectAndApply(selects);
-	cout << "checkpoint 3" << endl;
 	vector<AndList*>* orderedJoins = this->OptimizeJoinOrder(joins);
 
 	//-------now build the query plan ------
 	QueryPlan *queryPlan = new QueryPlan();
-	//first build the select from file
+	// first build the select from file
 	map<string, QueryPlanNode *> selectFromFiles; //store the selector
 	for (TableList *table = this->tables; table != NULL; table = table->next) {
-		SelectFileQPNode *selectFile = new SelectFileQPNode;
+		// Get schema for the relation Names.
 		char name[100];
 		sprintf(name, "%s%s.bin", dbfile_dir, table->tableName);
-		selectFile->sFileName = string(name);
-		selectFile->outPipeId = queryPlan->pipeNum++;
-		selectFile->outputSchema = new Schema(catalog_path, table->tableName);
+		Schema *sch = new Schema(catalog_path, table->tableName);
+		Record literal;
+		CNF cnf;
 
-		string relName(table->tableName);
+		// Build Schema from original schema for relations with alias.
+		string aliasRelName(table->tableName);
 		if (table->aliasAs) { //supp AS s
-			selectFile->outputSchema->UpdateSchemaForAlias(table->aliasAs);
-			relName = string(table->aliasAs);
+			sch->UpdateSchemaForAlias(table->aliasAs);
+			aliasRelName = string(table->aliasAs);
 		}
 
+		// iterate thru the AndLists for given alias.
 		map<string, AndList*>::iterator it;
 		for (it = selectors->begin(); it != selectors->end(); it++) {
-			if (relName.compare(it->first) == 0)
+			if (aliasRelName.compare(it->first) == 0)
 				break;
 		}
 		AndList *andList;
@@ -302,20 +295,28 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 			andList = NULL;
 		else
 			andList = it->second;
-		selectFile->cnf->GrowFromParseTree(andList, selectFile->outputSchema,
-				*(selectFile->literal));
-		selectFromFiles.insert(make_pair(relName, selectFile));
+
+		// Get the CNF from the andList for given relation.
+		cnf.GrowFromParseTree(andList, sch, literal);
+
+		// Create the QueryPlan Node for select file and set the schema as well.
+		SelectFileQPNode *selectFile = new SelectFileQPNode(string(name),
+				queryPlan->pipeNum++, &cnf, &literal, sch);
+
+		// add to the map.
+		selectFromFiles.insert(make_pair(aliasRelName, selectFile));
 	}
-	cout << "checkpoint 4" << endl;
 
 	//------------then build the joins
-	map<string, QueryPlanNode *> builtJoins;
+	map<string, JoinQPNode *> builtJoins;
 	JoinQPNode *join = NULL;
 
 	if (orderedJoins->size() > 0) {
 		for (vector<AndList*>::iterator jIt = orderedJoins->begin();
 				jIt != orderedJoins->end(); jIt++) {
 			AndList *aAndList = *jIt;
+
+			// Get the relation names of the join condition.
 			Operand *leftAtt = aAndList->left->left->left;
 			string leftRel;
 			string lefAttVal = string(leftAtt->value);
@@ -324,14 +325,14 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 			string rightRel;
 			string rightAttVal = string(rightAtt->value);
 			this->statistics->GetRelation(rightAttVal, rightRel);
+
 			join = new JoinQPNode;
-			QueryPlanNode *leftUpMost = builtJoins[leftRel];
-			QueryPlanNode *rightUpMost = builtJoins[rightRel];
+			// Check if the join has already been done for the relation. i.e. it was already a part of a join.
+			JoinQPNode *leftUpMost = builtJoins[leftRel];
+			JoinQPNode *rightUpMost = builtJoins[rightRel];
 			if (!leftUpMost && !rightUpMost) { // !A and !B
 				join->left = selectFromFiles[leftRel];
 				join->right = selectFromFiles[rightRel];
-				join->outputSchema = new Schema(join->left->outputSchema,
-						join->right->outputSchema);
 			} else if (leftUpMost) { //A and !B
 				while (leftUpMost->parent)
 					leftUpMost = leftUpMost->parent;
@@ -356,17 +357,23 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 			}
 			builtJoins[leftRel] = join;
 			builtJoins[rightRel] = join;
+
+			CNF cnf;
+			Record literal;
+			cnf.GrowFromParseTree(aAndList, join->left->outputSchema,
+					join->right->outputSchema, literal);
+			// Set Variables.
 			join->leftInPipeId = join->left->outPipeId;
 			join->rightInPipeId = join->right->outPipeId;
 			join->outputSchema = new Schema(join->left->outputSchema,
 					join->right->outputSchema);
 			join->outPipeId = queryPlan->pipeNum++;
-			join->cnf->GrowFromParseTree(aAndList, join->left->outputSchema,
-					join->right->outputSchema, *(join->literal));
+			join->cnf = &cnf;
+			join->literal = &literal;
+			join->CreatePipe();
 		}
 	}
 
-	cout << "checkpoint 5" << endl;
 	// the selection above join
 	SelectPipeQPNode *selAbvJoin = NULL;
 	if (selAboveJoin.size() > 0) {
@@ -379,6 +386,7 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 		selAbvJoin->leftInPipeId = selAbvJoin->left->outPipeId;
 		selAbvJoin->outPipeId = queryPlan->pipeNum++;
 		selAbvJoin->outputSchema = selAbvJoin->left->outputSchema;
+		selAbvJoin->CreatePipe();
 		AndList *andList = *(selAboveJoin.begin());
 		for (vector<AndList*>::iterator it = selAboveJoin.begin();
 				it != selAboveJoin.end(); it++) {
@@ -386,11 +394,13 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 				andList->rightAnd = *it;
 			}
 		}
-		selAbvJoin->cnf->GrowFromParseTree(andList, selAbvJoin->outputSchema,
-				*(selAbvJoin->literal));
+		Record literal;
+		CNF cnf;
+		cnf.GrowFromParseTree(andList, selAbvJoin->outputSchema, literal);
+		selAbvJoin->cnf = &cnf;
+		selAbvJoin->literal = &literal;
 	}
 
-	cout << "checkpoint 6" << endl;
 	//build group by if any
 	GroupByQPNode *groupBy = NULL;
 	if (this->groupAtts) {
@@ -406,17 +416,20 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 		groupBy->outPipeId = queryPlan->pipeNum++;
 		groupBy->orderMaker = this->GenerateOM(groupBy->left->outputSchema);
 		groupBy->func = this->GenerateFunc(groupBy->left->outputSchema);
+		groupBy->CreatePipe();
 
 		Attribute *attr = new Attribute[1];
 		attr[0].name = (char *) "sum";
 		attr[0].myType = Double;
 		Schema *sumSchema = new Schema((char *) "dummy", 1, attr);
+
 		NameList *attName = this->groupAtts;
 		int numGroupAttrs = 0;
 		while (attName) {
 			numGroupAttrs++;
 			attName = attName->next;
 		}
+
 		if (numGroupAttrs == 0) {
 			groupBy->outputSchema = sumSchema;
 		} else {
@@ -435,7 +448,6 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 		}
 	}
 
-	cout << "checkpoint 7" << endl;
 	//------build the SUM if any------
 	SumQPNode *sum = NULL;
 	if (groupBy == NULL && this->finalFunction != NULL) {
@@ -449,6 +461,7 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 		sum->leftInPipeId = sum->left->outPipeId;
 		sum->outPipeId = queryPlan->pipeNum++;
 		sum->func = this->GenerateFunc(sum->left->outputSchema);
+		sum->CreatePipe();
 
 		Attribute *attr = new Attribute[1];
 		attr[0].name = (char *) "sum";
@@ -456,7 +469,6 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 		sum->outputSchema = new Schema((char *) "dummy", 1, attr);
 	}
 
-	cout << "checkpoint 7" << endl;
 	//-------build the project --------
 	ProjectQPNode *project = new ProjectQPNode;
 	int outputNum = 0;
@@ -517,10 +529,10 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 	project->leftInPipeId = project->left->outPipeId;
 	project->outPipeId = queryPlan->pipeNum++;
 	project->outputSchema = new Schema((char*) "dummy", outputNum, outputAtts);
+	project->CreatePipe();
 
 	queryPlan->root = project;
 
-	cout << "checkpoint 8" << endl;
 	//-------build the distinct -------
 	DistinctQPNode *distinct = NULL;
 	if (this->distinctAtts) { //we have distinct
@@ -529,6 +541,7 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 		distinct->leftInPipeId = distinct->left->outPipeId;
 		distinct->outputSchema = distinct->left->outputSchema;
 		distinct->outPipeId = queryPlan->pipeNum++;
+		distinct->CreatePipe();
 		queryPlan->root = distinct;
 	}
 	return queryPlan;
