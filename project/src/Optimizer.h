@@ -27,6 +27,14 @@ private:
 	int distinctFunc;  // 1 if there is a DISTINCT in an aggregate query
 	Statistics *statistics;
 
+	void GetJoinsAndSelects(vector<AndList*> &joins, vector<AndList*> &selects,
+			vector<AndList*> &selAboveJoin);
+
+	map<string, AndList*>* OptimizeSelectAndApply(vector<AndList*> selects);
+	vector<AndList*>* OptimizeJoinOrder(vector<AndList*> joins);
+
+	Function *GenerateFunc(Schema *schema);
+	OrderMaker *GenerateOM(Schema *schema);
 public:
 	Optimizer();
 	Optimizer(struct FuncOperator *finalFunction, struct TableList *tables,

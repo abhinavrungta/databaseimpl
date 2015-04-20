@@ -176,7 +176,23 @@ Schema::Schema(char *fName, char *relName) {
 
 	fclose(foo);
 }
+Schema::Schema(Schema *left, Schema*right) {
+	int leftAtts = left->numAtts;
+	int rightAtts = right->numAtts;
 
+	numAtts = left->numAtts + right->numAtts;
+
+	myAtts = new Attribute[numAtts];
+
+	//Start with the left schema
+	for (unsigned i = 0; i < leftAtts; i++) {
+		myAtts[i] = left->myAtts[i];
+	}
+	//Them move to the right schema
+	for (unsigned i = 0; i < rightAtts; i++) {
+		myAtts[i + leftAtts] = right->myAtts[i];
+	}
+}
 Schema::~Schema() {
 	delete[] myAtts;
 	myAtts = 0;

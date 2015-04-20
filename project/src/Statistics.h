@@ -32,6 +32,7 @@ public:
 	double Estimate(struct AndList *parseTree, char **relNames, int numToJoin);
 	int GetPartitionName(char *relNames[], int numToJoin, string &leftRel,
 			string &rightRel);
+	int GetRelation(string &attr, string &rel);
 	void LoadAllStatistics();
 };
 #endif

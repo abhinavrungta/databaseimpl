@@ -206,6 +206,26 @@ void Statistics::Print() {
 	}
 }
 
+int Statistics::GetRelation(string &attr, string &rel) {
+	int prefixPos = attr.find(".");
+	if (prefixPos != string::npos) {
+		rel = attr.substr(0, prefixPos);
+	} else {
+		map<string, map<string, int> >::iterator mapEntry = attrData->begin();
+		for (; mapEntry != attrData->end(); mapEntry++) {
+			if ((*attrData)[mapEntry->first].count(attr) > 0) {
+				rel = mapEntry->first;
+				break;
+			}
+		}
+		// Not Found.
+		if (mapEntry == attrData->end()) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
 // Searches and Sets the left and right partition in which the relNames are divided.
 int Statistics::GetPartitionName(char *relNames[], int numToJoin,
 		string &leftRel, string &rightRel) {

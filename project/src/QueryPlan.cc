@@ -12,6 +12,9 @@ void QueryPlanNode::ExecutePostOrder() {
 }
 
 // -------------------------------------- select pipe ------------------
+SelectPipeQPNode::SelectPipeQPNode() {
+}
+
 SelectPipeQPNode::SelectPipeQPNode(int in, int out, CNF* pCNF, Record * pLit) {
 	leftInPipeId = in;
 	outPipeId = out;
@@ -71,6 +74,9 @@ void SelectPipeQPNode::ExecuteNode() {
 }
 
 // -------------------------------------- select file ------------------
+SelectFileQPNode::SelectFileQPNode() {
+}
+
 SelectFileQPNode::SelectFileQPNode(string inFile, int out, CNF* pCNF,
 		Record * pLit) {
 	sFileName = inFile;
@@ -133,6 +139,9 @@ void SelectFileQPNode::ExecuteNode() {
 }
 
 // -------------------------------------- project ------------------
+ProjectQPNode::ProjectQPNode() {
+}
+
 ProjectQPNode::ProjectQPNode(int ip, int op, int *atk, int nKeep, int nTot,
 		Schema * pSch) {
 	leftInPipeId = ip;
@@ -191,6 +200,9 @@ void ProjectQPNode::ExecuteNode() {
 }
 
 // -------------------------------------- join ------------------
+JoinQPNode::JoinQPNode() {
+}
+
 JoinQPNode::JoinQPNode(int ip1, int ip2, int op, CNF* pCNF, Schema * pSch,
 		Record * pLit) {
 	leftInPipeId = ip1;
@@ -239,6 +251,9 @@ void JoinQPNode::ExecuteNode() {
 }
 
 // -------------------------------------- group by  ------------------
+GroupByQPNode::GroupByQPNode() {
+}
+
 GroupByQPNode::GroupByQPNode(int ip, int op, Function *pF, OrderMaker *pOM) {
 	leftInPipeId = ip;
 	outPipeId = op;
@@ -302,6 +317,9 @@ void GroupByQPNode::ExecuteNode() {
 }
 
 // -------------------------------------- sum ------------------
+SumQPNode::SumQPNode() {
+}
+
 SumQPNode::SumQPNode(int ip, int op, Function *pF, bool bPrint) {
 	leftInPipeId = ip;
 	outPipeId = op;
@@ -351,6 +369,9 @@ void SumQPNode::ExecuteNode() {
 }
 
 // -------------------------------------- Distinct ------------------
+DistinctQPNode::DistinctQPNode() {
+}
+
 DistinctQPNode::DistinctQPNode(int ip, int op, Schema * pSch) {
 	leftInPipeId = ip;
 	outPipeId = op;
@@ -399,6 +420,9 @@ void DistinctQPNode::ExecuteNode() {
 }
 
 // -------------------------------------- write out ------------------
+WriteOutQPNode::WriteOutQPNode() {
+}
+
 WriteOutQPNode::WriteOutQPNode(int ip, string outFile, Schema * pSch) {
 	leftInPipeId = ip;
 	outFileName = outFile;
