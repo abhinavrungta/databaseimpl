@@ -12,6 +12,7 @@ void QueryPlanNode::ExecutePostOrder() {
 		this->left->ExecutePostOrder();
 	if (this->right)
 		this->right->ExecutePostOrder();
+	cout << "Pipe id" << this->outPipeId << endl;
 	this->ExecuteNode();
 }
 
@@ -34,16 +35,17 @@ SelectPipeQPNode::SelectPipeQPNode(int in, int out, CNF* pCNF, Record * pLit,
 }
 
 SelectPipeQPNode::~SelectPipeQPNode() {
+	cout << "Decon SP" << endl;
 	if (this->left)
 		delete this->left;
 	if (this->right)
 		delete this->right;
 
-	if (cnf) {
+	if (cnf != NULL) {
 		delete cnf;
 		cnf = NULL;
 	}
-	if (literal) {
+	if (literal != NULL) {
 		delete literal;
 		literal = NULL;
 	}
@@ -98,16 +100,17 @@ SelectFileQPNode::SelectFileQPNode(string inFile, int out, CNF* pCNF,
 }
 
 SelectFileQPNode::~SelectFileQPNode() {
+	cout << "Decon SF" << endl;
 	if (this->left != NULL)
 		delete this->left;
 	if (this->right != NULL)
 		delete this->right;
 
-	if (cnf) {
+	if (cnf != NULL) {
 		delete cnf;
 		cnf = NULL;
 	}
-	if (literal) {
+	if (literal != NULL) {
 		delete literal;
 		literal = NULL;
 	}
@@ -145,6 +148,8 @@ void SelectFileQPNode::ExecuteNode() {
 	SelectFile * pSF = new SelectFile;
 	pSF->Use_n_Pages(QUERY_USE_PAGES);
 	if (cnf != NULL && literal != NULL) {
+		cout << "************" << endl;
+		cnf->Print();
 		pSF->Run(*pFile, *(pipesList[outPipeId]), *cnf, *literal);
 	}
 }

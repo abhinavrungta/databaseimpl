@@ -21,6 +21,7 @@ public:
 	// common members
 	int leftInPipeId, outPipeId;
 	Schema * outputSchema;
+	CNF* cnf;
 	static map<int, Pipe*> pipesList;
 
 	// left and right children (tree structure)
@@ -29,7 +30,7 @@ public:
 
 	QueryPlanNode() :
 			leftInPipeId(-1), outPipeId(-1), left(
-			NULL), right(NULL), outputSchema(NULL) {
+			NULL), right(NULL), outputSchema(NULL), cnf(NULL) {
 	}
 
 	virtual void PrintNode() = 0;
@@ -42,7 +43,6 @@ public:
 
 class SelectPipeQPNode: public QueryPlanNode {
 public:
-	CNF* cnf;
 	Record * literal;
 
 	SelectPipeQPNode();
@@ -55,7 +55,6 @@ public:
 class SelectFileQPNode: public QueryPlanNode {
 public:
 	string sFileName;
-	CNF* cnf;
 	Record * literal;
 
 	SelectFileQPNode();
@@ -81,7 +80,6 @@ public:
 class JoinQPNode: public QueryPlanNode {
 public:
 	int rightInPipeId;
-	CNF* cnf;
 	Record * literal;
 	JoinQPNode * parent;
 

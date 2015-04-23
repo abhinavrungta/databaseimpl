@@ -26,11 +26,11 @@ Optimizer::Optimizer(struct FuncOperator *finalFunction,
 
 void Optimizer::GetJoinsAndSelects(vector<AndList*> &joins,
 		vector<AndList*> &selects, vector<AndList*> &selAboveJoin) {
-	OrList *aOrList;
+	OrList *aOrList = NULL;
 	AndList *aAndList = this->cnfAndList;
-	while (aAndList) {
+	while (aAndList != NULL) {
 		aOrList = aAndList->left;
-		if (!aOrList) {
+		if (aOrList == NULL) {
 			cerr << "Error in cnf AndList" << endl;
 			return;
 		}
@@ -41,7 +41,7 @@ void Optimizer::GetJoinsAndSelects(vector<AndList*> &joins,
 			newAnd->rightAnd = NULL;
 			joins.push_back(newAnd);
 		} else {
-			if (!aOrList->rightOr) {  // A.a = 3 like
+			if (aOrList->rightOr == NULL) {  // A.a = 3 like
 				AndList *newAnd = new AndList();
 				newAnd->left = aOrList;
 				newAnd->rightAnd = NULL;
@@ -113,7 +113,7 @@ map<string, AndList*>* Optimizer::OptimizeSelectAndApply(
 			}
 		}
 		if (mit == selectors->end()) //new selector
-			selectors->insert(make_pair(rel, aAndList));
+			selectors->insert(pair<string, AndList*>(rel, aAndList));
 	}
 	return selectors;
 }
@@ -196,7 +196,7 @@ void PrintOrList(struct OrList *pOr) {
 		struct ComparisonOp *pCom = pOr->left;
 		PrintComparisonOp(pCom);
 
-		if (pOr->rightOr) {
+		if (pOr->rightOr != NULL) {
 			cout << " OR ";
 			PrintOrList(pOr->rightOr);
 		}
@@ -208,7 +208,7 @@ void PrintAndList(struct AndList *pAnd) {
 	if (pAnd != NULL) {
 		struct OrList *pOr = pAnd->left;
 		PrintOrList(pOr);
-		if (pAnd->rightAnd) {
+		if (pAnd->rightAnd != NULL) {
 			cout << " AND ";
 			PrintAndList(pAnd->rightAnd);
 		}
@@ -268,7 +268,8 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 	//-------now build the query plan ------
 	QueryPlan *queryPlan = new QueryPlan();
 	// first build the select from file
-	map<string, QueryPlanNode *> selectFromFiles; //store the selector
+	map<string, SelectFileQPNode *>* selectFromFiles = new map<string,
+			SelectFileQPNode*>(); //store the selector
 	for (TableList *table = this->tables; table != NULL; table = table->next) {
 		// Get schema for the relation Names.
 		char name[100];
@@ -279,7 +280,7 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 
 		// Build Schema from original schema for relations with alias.
 		string aliasRelName(table->tableName);
-		if (table->aliasAs) { //supp AS s
+		if (table->aliasAs != NULL) { //supp AS s
 			sch->UpdateSchemaForAlias(table->aliasAs);
 			aliasRelName = string(table->aliasAs);
 		}
@@ -303,12 +304,20 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 		SelectFileQPNode *selectFile = new SelectFileQPNode(string(name),
 				queryPlan->pipeNum++, &cnf, &literal, sch);
 
+		cout << "Alias Name " << aliasRelName << "  " << selectFile->outPipeId
+				<< endl;
+		if (selectFile->cnf != NULL) {
+			cout << "sad " << endl;
+			selectFile->cnf->Print();
+		}
+
 		// add to the map.
-		selectFromFiles.insert(make_pair(aliasRelName, selectFile));
+		selectFromFiles->insert(
+				pair<string, SelectFileQPNode*>(aliasRelName, selectFile));
 	}
 
 	//------------then build the joins
-	map<string, JoinQPNode *> builtJoins;
+	map<string, JoinQPNode *>* builtJoins = new map<string, JoinQPNode*>();
 	JoinQPNode *join = NULL;
 
 	if (orderedJoins->size() > 0) {
@@ -326,26 +335,34 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 			string rightAttVal = string(rightAtt->value);
 			this->statistics->GetRelation(rightAttVal, rightRel);
 
+			cout << leftRel << endl;
+			cout << rightRel << endl;
+
 			join = new JoinQPNode;
+			cout << "Size at " << builtJoins->size() << endl;
 			// Check if the join has already been done for the relation. i.e. it was already a part of a join.
-			JoinQPNode *leftUpMost = builtJoins[leftRel];
-			JoinQPNode *rightUpMost = builtJoins[rightRel];
-			if (!leftUpMost && !rightUpMost) { // !A and !B
-				join->left = selectFromFiles[leftRel];
-				join->right = selectFromFiles[rightRel];
-			} else if (leftUpMost) { //A and !B
+			JoinQPNode *leftUpMost = (*builtJoins)[leftRel];
+			JoinQPNode *rightUpMost = (*builtJoins)[rightRel];
+			if (leftUpMost == NULL && rightUpMost == NULL) { // !A and !B
+				cout << "Case 1" << endl;
+				join->left = (*selectFromFiles)[leftRel];
+				join->right = (*selectFromFiles)[rightRel];
+			} else if (leftUpMost != NULL) { //A and !B
+				cout << "Case 2" << endl;
 				while (leftUpMost->parent)
 					leftUpMost = leftUpMost->parent;
 				join->left = leftUpMost;
 				leftUpMost->parent = join;
-				join->right = selectFromFiles[rightRel];
-			} else if (rightUpMost) { //!A and B
+				join->right = (*selectFromFiles)[rightRel];
+			} else if (rightUpMost != NULL) { //!A and B
+				cout << "Case 3" << endl;
 				while (rightUpMost->parent)
 					rightUpMost = rightUpMost->parent;
 				join->left = rightUpMost;
 				rightUpMost->parent = join;
-				join->right = selectFromFiles[leftRel];
+				join->right = (*selectFromFiles)[leftRel];
 			} else { // A and B
+				cout << "Case 4" << endl;
 				while (leftUpMost->parent)
 					leftUpMost = leftUpMost->parent;
 				while (rightUpMost->parent)
@@ -355,8 +372,11 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 				join->right = rightUpMost;
 				rightUpMost->parent = join;
 			}
-			builtJoins[leftRel] = join;
-			builtJoins[rightRel] = join;
+			builtJoins->insert(pair<string, JoinQPNode*>(leftRel, join));
+			builtJoins->insert(pair<string, JoinQPNode*>(rightRel, join));
+			cout << "^^^^^^^^^^^^^" << endl;
+			cout << join->left->outPipeId << endl;
+			join->left->cnf->Print();
 
 			CNF cnf;
 			Record literal;
@@ -371,6 +391,7 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 			join->cnf = &cnf;
 			join->literal = &literal;
 			join->CreatePipe();
+			cout << "Size " << builtJoins->size() << endl;
 		}
 	}
 
@@ -379,7 +400,7 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 	if (selAboveJoin.size() > 0) {
 		selAbvJoin = new SelectPipeQPNode;
 		if (join == NULL) {
-			selAbvJoin->left = selectFromFiles.begin()->second;
+			selAbvJoin->left = selectFromFiles->begin()->second;
 		} else {
 			selAbvJoin->left = join;
 		}
@@ -403,14 +424,14 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 
 	//build group by if any
 	GroupByQPNode *groupBy = NULL;
-	if (this->groupAtts) {
+	if (this->groupAtts != NULL) {
 		groupBy = new GroupByQPNode;
-		if (selAbvJoin) {
+		if (selAbvJoin != NULL) {
 			groupBy->left = selAbvJoin;
-		} else if (join) {
+		} else if (join != NULL) {
 			groupBy->left = join;
 		} else {
-			groupBy->left = selectFromFiles.begin()->second;
+			groupBy->left = selectFromFiles->begin()->second;
 		}
 		groupBy->leftInPipeId = groupBy->left->outPipeId;
 		groupBy->outPipeId = queryPlan->pipeNum++;
@@ -452,12 +473,12 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 	SumQPNode *sum = NULL;
 	if (groupBy == NULL && this->finalFunction != NULL) {
 		sum = new SumQPNode;
-		if (selAbvJoin)
+		if (selAbvJoin != NULL)
 			sum->left = selAbvJoin;
-		else if (join)
+		else if (join != NULL)
 			sum->left = join;
 		else
-			sum->left = selectFromFiles.begin()->second;
+			sum->left = selectFromFiles->begin()->second;
 		sum->leftInPipeId = sum->left->outPipeId;
 		sum->outPipeId = queryPlan->pipeNum++;
 		sum->func = this->GenerateFunc(sum->left->outputSchema);
@@ -479,7 +500,7 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 		name = name->next;
 	}
 	int ithAttr = 0;
-	if (groupBy) {
+	if (groupBy != NULL) {
 		project->left = groupBy;
 		outputNum++;
 		project->attributeList = new int[outputNum];
@@ -488,7 +509,7 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 		outputAtts[0].name = (char *) "sum";
 		outputAtts[0].myType = Double;
 		ithAttr = 1;
-	} else if (sum) { // we have SUM
+	} else if (sum != NULL) { // we have SUM
 		project->left = sum;
 		outputNum++;
 		project->attributeList = new int[outputNum];
@@ -497,7 +518,7 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 		outputAtts[0].name = (char*) "sum";
 		outputAtts[0].myType = Double;
 		ithAttr = 1;
-	} else if (join) {
+	} else if (join != NULL) {
 		project->left = join;
 		if (outputNum == 0) {
 			cerr << "No attributes assigned to select!" << endl;
@@ -506,7 +527,7 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 		project->attributeList = new int[outputNum];
 		outputAtts = new Attribute[outputNum];
 	} else {
-		project->left = selectFromFiles.begin()->second;
+		project->left = selectFromFiles->begin()->second;
 		if (outputNum == 0) {
 			cerr << "No attributes assigned to select!" << endl;
 			return NULL;
