@@ -4,5 +4,5 @@ mkdir -p ${dbfile}
 export tpch=$(pwd)/db/
 cd project/src/
 make clean
-make test
-./test "$@"
+make a3test
+./a3test "$@"
