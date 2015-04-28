@@ -337,29 +337,9 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 
 			join = new JoinQPNode();
 			cout << "Size at " << builtJoins->size() << endl;
-	
 			// Check if the join has already been done for the relation. i.e. it was already a part of a join.
-			JoinQPNode *leftUpMost = NULL;
-			JoinQPNode *rightUpMost = NULL;
-	
-			try{
-				leftUpMost = (*builtJoins).at(leftRel);
-			}
-			catch(exception e ){
-				cout<<"leftUpMost threw a null exception" << endl;
-			}
-
-			// Try-catch to initialize rightUpMost
-			try{
-				rightUpMost =(*builtJoins).at(rightRel);
-			}
-
-			catch(exception e1){
-				cout << "rightUpMost threw a null exception" << endl;
-			}
-
-
-
+			JoinQPNode *leftUpMost = (*builtJoins)[leftRel];
+			JoinQPNode *rightUpMost = (*builtJoins)[rightRel];
 			if (leftUpMost == NULL && rightUpMost == NULL) { // !A and !B
 				cout << "Case 1" << endl;
 				join->left = (*selectFromFiles)[leftRel];
