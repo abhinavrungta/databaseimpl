@@ -30,11 +30,13 @@ public:
 
 	QueryPlanNode() :
 			leftInPipeId(-1), outPipeId(-1), left(
-			NULL), right(NULL), outputSchema(NULL), cnf(NULL) {
+			NULL), right(NULL), outputSchema(NULL) {
+		cnf = new CNF;
 	}
 
 	virtual void PrintNode() = 0;
 	void ExecutePostOrder();
+	void PrintPostOrder();
 	void CreatePipe();
 	virtual void ExecuteNode() = 0;
 	virtual ~QueryPlanNode() {

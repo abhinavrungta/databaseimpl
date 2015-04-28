@@ -16,6 +16,14 @@ void QueryPlanNode::ExecutePostOrder() {
 	this->ExecuteNode();
 }
 
+void QueryPlanNode::PrintPostOrder() {
+	if (this->left)
+		this->left->PrintPostOrder();
+	if (this->right)
+		this->right->PrintPostOrder();
+	this->PrintNode();
+}
+
 void QueryPlanNode::CreatePipe() {
 	pipesList[outPipeId] = new Pipe(QUERY_PIPE_SIZE);
 }
@@ -52,9 +60,6 @@ SelectPipeQPNode::~SelectPipeQPNode() {
 }
 
 void SelectPipeQPNode::PrintNode() {
-	if (this->left != NULL)
-		this->left->PrintNode();
-
 	cout << "\n*** Select Pipe Operation ***";
 	cout << "\nInput pipe ID: " << leftInPipeId;
 	cout << "\nOutput pipe ID: " << outPipeId;
@@ -71,9 +76,6 @@ void SelectPipeQPNode::PrintNode() {
 	else
 		cout << "NULL";
 	cout << endl << endl;
-
-	if (this->right != NULL)
-		this->right->PrintNode();
 }
 
 void SelectPipeQPNode::ExecuteNode() {
@@ -117,8 +119,6 @@ SelectFileQPNode::~SelectFileQPNode() {
 }
 
 void SelectFileQPNode::PrintNode() {
-	if (this->left != NULL)
-		this->left->PrintNode();
 
 	cout << "\n*** Select File Operation ***";
 	cout << "\nOutput pipe ID: " << outPipeId;
@@ -136,8 +136,6 @@ void SelectFileQPNode::PrintNode() {
 	else
 		cout << "NULL";
 	cout << endl << endl;
-	if (this->right != NULL)
-		this->right->PrintNode();
 }
 
 void SelectFileQPNode::ExecuteNode() {
@@ -183,9 +181,6 @@ ProjectQPNode::~ProjectQPNode() {
 }
 
 void ProjectQPNode::PrintNode() {
-	if (this->left != NULL)
-		this->left->PrintNode();
-
 	cout << "\n*** Project Node Operation ***";
 	cout << "\nInput pipe ID: " << leftInPipeId;
 	cout << "\nOutput pipe ID: " << outPipeId;
@@ -203,8 +198,6 @@ void ProjectQPNode::PrintNode() {
 		cout << "NULL";
 
 	cout << endl << endl;
-	if (this->right != NULL)
-		this->right->PrintNode();
 }
 
 void ProjectQPNode::ExecuteNode() {
@@ -235,8 +228,6 @@ JoinQPNode::~JoinQPNode() {
 }
 
 void JoinQPNode::PrintNode() {
-	if (this->left != NULL)
-		this->left->PrintNode();
 	cout << "\n*** Join Operation ***";
 	cout << "\nInput pipe-1 ID: " << leftInPipeId;
 	cout << "\nInput pipe-2 ID: " << rightInPipeId;
@@ -254,8 +245,6 @@ void JoinQPNode::PrintNode() {
 	else
 		cout << "NULL";
 	cout << endl << endl;
-	if (this->right != NULL)
-		this->right->PrintNode();
 }
 
 void JoinQPNode::ExecuteNode() {
@@ -298,9 +287,6 @@ GroupByQPNode::~GroupByQPNode() {
 }
 
 void GroupByQPNode::PrintNode() {
-	if (this->left != NULL)
-		this->left->PrintNode();
-
 	cout << "\n*** Group-by Operation ***";
 	cout << "\nInput pipe ID: " << leftInPipeId;
 	cout << "\nOutput pipe ID: " << outPipeId;
@@ -321,9 +307,6 @@ void GroupByQPNode::PrintNode() {
 		cout << "NULL";
 
 	cout << endl << endl;
-
-	if (this->right != NULL)
-		this->right->PrintNode();
 }
 
 void GroupByQPNode::ExecuteNode() {
@@ -360,9 +343,6 @@ SumQPNode::~SumQPNode() {
 }
 
 void SumQPNode::PrintNode() {
-	if (this->left != NULL)
-		this->left->PrintNode();
-
 	cout << "\n*** Sum Operation ***";
 	cout << "\nInput pipe ID: " << leftInPipeId;
 	cout << "\nOutput pipe ID: " << outPipeId;
@@ -375,9 +355,6 @@ void SumQPNode::PrintNode() {
 		cout << "NULL";
 
 	cout << endl << endl;
-
-	if (this->right != NULL)
-		this->right->PrintNode();
 }
 
 void SumQPNode::ExecuteNode() {
@@ -412,9 +389,6 @@ DistinctQPNode::~DistinctQPNode() {
 }
 
 void DistinctQPNode::PrintNode() {
-	if (this->left != NULL)
-		this->left->PrintNode();
-
 	cout << "\n*** Distinct Operation ***";
 	cout << "\nInput pipe ID: " << leftInPipeId;
 	cout << "\nOutput pipe ID: " << outPipeId;
@@ -425,9 +399,6 @@ void DistinctQPNode::PrintNode() {
 		cout << "NULL";
 
 	cout << endl << endl;
-
-	if (this->right != NULL)
-		this->right->PrintNode();
 }
 
 void DistinctQPNode::ExecuteNode() {
@@ -462,9 +433,6 @@ WriteOutQPNode::~WriteOutQPNode() {
 }
 
 void WriteOutQPNode::PrintNode() {
-	if (this->left != NULL)
-		this->left->PrintNode();
-
 	cout << "\n*** WriteOut Operation ***";
 	cout << "\nInput pipe ID: " << leftInPipeId;
 	cout << "\nOutput file: " << outFileName;
@@ -475,9 +443,6 @@ void WriteOutQPNode::PrintNode() {
 		cout << "NULL";
 
 	cout << endl << endl;
-
-	if (this->right != NULL)
-		this->right->PrintNode();
 }
 
 void WriteOutQPNode::ExecuteNode() {
@@ -501,10 +466,6 @@ QueryPlan::QueryPlan() {
 }
 
 QueryPlan::~QueryPlan() {
-}
-
-void QueryPlan::PrintInOrder() {
-	root->PrintNode();
 }
 
 // ------------------Execute ------------
@@ -571,9 +532,9 @@ int QueryPlan::ExecuteDropTable(char *dropTable) {
 int QueryPlan::ExecuteQueryPlan() {
 
 	if (strcmp(this->outputType, "NONE") == 0) { //just print out the query plan
-		this->PrintInOrder();
+		this->root->PrintPostOrder();
 	} else {
-		this->PrintInOrder();
+		this->root->PrintPostOrder();
 		WriteOutQPNode *writeOut = new WriteOutQPNode(this->root->outPipeId,
 				this->outputType, this->root->outputSchema);
 		writeOut->left = this->root;

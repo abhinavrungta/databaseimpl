@@ -260,7 +260,8 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 	}
 
 	vector<AndList*> joins;
-	vector<AndList*> selects, selAboveJoin;
+	vector<AndList*> selects;
+	vector<AndList*> selAboveJoin;
 	GetJoinsAndSelects(joins, selects, selAboveJoin);
 	map<string, AndList*>* selectors = this->OptimizeSelectAndApply(selects);
 	vector<AndList*>* orderedJoins = this->OptimizeJoinOrder(joins);
@@ -275,8 +276,11 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 		char name[100];
 		sprintf(name, "%s%s.bin", dbfile_dir, table->tableName);
 		Schema *sch = new Schema(catalog_path, table->tableName);
-		Record literal;
-		CNF cnf;
+
+		SelectFileQPNode *selectFile = new SelectFileQPNode();
+		selectFile->sFileName = string(name);
+		selectFile->outPipeId = queryPlan->pipeNum++;
+		selectFile->CreatePipe();
 
 		// Build Schema from original schema for relations with alias.
 		string aliasRelName(table->tableName);
@@ -284,6 +288,9 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 			sch->UpdateSchemaForAlias(table->aliasAs);
 			aliasRelName = string(table->aliasAs);
 		}
+
+		selectFile->outputSchema = sch;
+		selectFile->literal = new Record;
 
 		// iterate thru the AndLists for given alias.
 		map<string, AndList*>::iterator it;
@@ -298,18 +305,8 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 			andList = it->second;
 
 		// Get the CNF from the andList for given relation.
-		cnf.GrowFromParseTree(andList, sch, literal);
-
-		// Create the QueryPlan Node for select file and set the schema as well.
-		SelectFileQPNode *selectFile = new SelectFileQPNode(string(name),
-				queryPlan->pipeNum++, &cnf, &literal, sch);
-
-		cout << "Alias Name " << aliasRelName << "  " << selectFile->outPipeId
-				<< endl;
-		if (selectFile->cnf != NULL) {
-			cout << "sad " << endl;
-			selectFile->cnf->Print();
-		}
+		selectFile->cnf->GrowFromParseTree(andList, selectFile->outputSchema,
+				*(selectFile->literal));
 
 		// add to the map.
 		selectFromFiles->insert(
@@ -338,7 +335,7 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 			cout << leftRel << endl;
 			cout << rightRel << endl;
 
-			join = new JoinQPNode;
+			join = new JoinQPNode();
 			cout << "Size at " << builtJoins->size() << endl;
 			// Check if the join has already been done for the relation. i.e. it was already a part of a join.
 			JoinQPNode *leftUpMost = (*builtJoins)[leftRel];
@@ -372,25 +369,19 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 				join->right = rightUpMost;
 				rightUpMost->parent = join;
 			}
-			builtJoins->insert(pair<string, JoinQPNode*>(leftRel, join));
-			builtJoins->insert(pair<string, JoinQPNode*>(rightRel, join));
-			cout << "^^^^^^^^^^^^^" << endl;
-			cout << join->left->outPipeId << endl;
-			join->left->cnf->Print();
-
-			CNF cnf;
-			Record literal;
-			cnf.GrowFromParseTree(aAndList, join->left->outputSchema,
-					join->right->outputSchema, literal);
 			// Set Variables.
 			join->leftInPipeId = join->left->outPipeId;
 			join->rightInPipeId = join->right->outPipeId;
+			join->outPipeId = queryPlan->pipeNum++;
+			join->CreatePipe();
 			join->outputSchema = new Schema(join->left->outputSchema,
 					join->right->outputSchema);
-			join->outPipeId = queryPlan->pipeNum++;
-			join->cnf = &cnf;
-			join->literal = &literal;
-			join->CreatePipe();
+			join->literal = new Record();
+			join->cnf->GrowFromParseTree(aAndList, join->left->outputSchema,
+					join->right->outputSchema, *(join->literal));
+
+			builtJoins->insert(pair<string, JoinQPNode*>(leftRel, join));
+			builtJoins->insert(pair<string, JoinQPNode*>(rightRel, join));
 			cout << "Size " << builtJoins->size() << endl;
 		}
 	}
