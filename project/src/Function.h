@@ -71,6 +71,4 @@ public:
 		return returnsInt ? Int : Double;
 	}
 };
-
 #endif
-

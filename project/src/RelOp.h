@@ -8,17 +8,14 @@
 #include "Comparison.h"
 #include "Pipe.h"
 #include "Function.h"
-#include <sstream>
-#include <stdlib.h>
-#include <vector>
 
 class DBFile;
 
 class RelationalOp {
-	public:
+public:
 	// blocks the caller until the particular relational operator 
 	// has run to completion
-	virtual void WaitUntilDone () = 0;
+	virtual void WaitUntilDone() = 0;
 
 	// tell us how much internal memory the operation can use
 	virtual void Use_n_Pages(int n) = 0;

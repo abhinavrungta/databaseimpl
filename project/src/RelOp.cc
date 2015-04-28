@@ -1,9 +1,9 @@
 #include "RelOp.h"
+
 #include <pthread.h>
 #include <iostream>
 #include <string>
 #include <sstream>
-#include <pthread.h>
 
 #include "BigQ.h"
 #include "ComparisonEngine.h"
@@ -46,9 +46,6 @@ void SelectFile::Use_n_Pages(int n) {
 	this->nPages = n;
 }
 
-
-// ------------------- SELECT PIPE ----------------------------------
-
 void *SelectPipe::Helper(void *arg) {
 	SelectPipe *sf = (SelectPipe *) arg;
 	sf->Apply();
@@ -64,13 +61,11 @@ void SelectPipe::Apply() {
 			this->outPipe->Insert(tmpRecord);
 		}
 		delete tmpRecord;
-
 		this->outPipe->ShutDown();
 	}
 }
 
 void SelectPipe::Run(Pipe &inPipe, Pipe &outPipe, CNF &selOp, Record &literal) {
-
 	this->inPipe = &inPipe;
 	this->outPipe = &outPipe;
 	this->cnf = &selOp;
@@ -85,8 +80,6 @@ void SelectPipe::WaitUntilDone() {
 void SelectPipe::Use_n_Pages(int n) {
 	this->nPages = n;
 }
-
-//------------------------------PROJECT-----------------------------------------------------
 
 void *Project::Helper(void *arg) {
 	Project *pr = (Project *) arg;
@@ -108,14 +101,12 @@ void Project::Apply() {
 
 void Project::Run(Pipe &inPipe, Pipe &outPipe, int *keepMe, int numAttsInput,
 		int numAttsOutput) {
-
 	this->inPipe = &inPipe;
 	this->outPipe = &outPipe;
 	this->keepMe = keepMe;
 	this->numAttsInput = numAttsInput;
 	this->numAttsOutput = numAttsOutput;
 	pthread_create(&thread, NULL, Helper, this);
-
 }
 
 void Project::WaitUntilDone() {

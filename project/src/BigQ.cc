@@ -9,8 +9,6 @@
 #include <iterator>
 #include <sstream>
 #include <string>
-#include <stdlib.h>
-#include <sstream> // For output
 
 BigQ::BigQ(Pipe &in, Pipe &out, OrderMaker &sortorder, int runlen, bool asc) {
 	input = &in;
