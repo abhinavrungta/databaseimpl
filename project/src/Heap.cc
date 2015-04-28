@@ -127,6 +127,7 @@ int Heap::GetNext(Record &fetchme) {
 			} else
 				return 0;
 		}
+
 		// read the next record.
 		readPageBuf.GetFirst(&fetchme);
 	}

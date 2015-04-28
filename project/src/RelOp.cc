@@ -12,6 +12,14 @@
 #include "Record.h"
 #include "Schema.h"
 
+void RelationalOp::WaitUntilDone() {
+	pthread_join(thread, NULL);
+}
+
+void RelationalOp::Use_n_Pages(int n) {
+	this->nPages = n;
+}
+
 void *SelectFile::Helper(void *arg) {
 	SelectFile *sf = (SelectFile *) arg;
 	sf->Apply();
@@ -36,14 +44,6 @@ void SelectFile::Run(DBFile &inFile, Pipe &outPipe, CNF &selOp,
 	this->cnf = &selOp;
 	this->literal = &literal;
 	pthread_create(&thread, NULL, Helper, this);
-}
-
-void SelectFile::WaitUntilDone() {
-	pthread_join(thread, NULL);
-}
-
-void SelectFile::Use_n_Pages(int n) {
-	this->nPages = n;
 }
 
 void *SelectPipe::Helper(void *arg) {
@@ -73,14 +73,6 @@ void SelectPipe::Run(Pipe &inPipe, Pipe &outPipe, CNF &selOp, Record &literal) {
 	pthread_create(&thread, NULL, Helper, this);
 }
 
-void SelectPipe::WaitUntilDone() {
-	pthread_join(thread, NULL);
-}
-
-void SelectPipe::Use_n_Pages(int n) {
-	this->nPages = n;
-}
-
 void *Project::Helper(void *arg) {
 	Project *pr = (Project *) arg;
 	pr->Apply();
@@ -107,14 +99,6 @@ void Project::Run(Pipe &inPipe, Pipe &outPipe, int *keepMe, int numAttsInput,
 	this->numAttsInput = numAttsInput;
 	this->numAttsOutput = numAttsOutput;
 	pthread_create(&thread, NULL, Helper, this);
-}
-
-void Project::WaitUntilDone() {
-	pthread_join(thread, NULL);
-}
-
-void Project::Use_n_Pages(int n) {
-	this->nPages = n;
 }
 
 void *Join::Helper(void *arg) {
@@ -290,14 +274,6 @@ void Join::Run(Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &selOp,
 	pthread_create(&thread, NULL, Helper, this);
 }
 
-void Join::WaitUntilDone() {
-	pthread_join(thread, NULL);
-}
-
-void Join::Use_n_Pages(int n) {
-	this->nPages = n;
-}
-
 void *Sum::Helper(void *arg) {
 	Sum *sum = (Sum *) arg;
 	sum->Apply();
@@ -354,14 +330,6 @@ void Sum::Run(Pipe &inPipe, Pipe &outPipe, Function &computeMe) {
 	pthread_create(&thread, NULL, Helper, this);
 }
 
-void Sum::WaitUntilDone() {
-	pthread_join(thread, NULL);
-}
-
-void Sum::Use_n_Pages(int n) {
-	this->nPages = n;
-}
-
 void *DuplicateRemoval::Helper(void *arg) {
 	DuplicateRemoval *dm = (DuplicateRemoval *) arg;
 	dm->Apply();
@@ -405,12 +373,6 @@ void DuplicateRemoval::Run(Pipe &inPipe, Pipe &outPipe, Schema &mySchema) {
 	this->mySchema = &mySchema;
 	pthread_create(&thread, NULL, Helper, this);
 }
-void DuplicateRemoval::WaitUntilDone() {
-	pthread_join(thread, NULL);
-}
-void DuplicateRemoval::Use_n_Pages(int n) {
-	this->nPages = n;
-}
 
 void *GroupBy::Helper(void *arg) {
 	GroupBy *gb = (GroupBy *) arg;
@@ -428,7 +390,7 @@ void GroupBy::Apply() {
 
 	Pipe sortPipe(PIPE_SIZE);
 	BigQ *bigQ = new BigQ(*(this->inPipe), sortPipe, *(this->groupAtts),
-			this->nPages);
+	RUNLEN);
 	// Construct Attribute Class for the new tuple to later generate a schema.
 	Attribute *attr = new Attribute;
 	attr->name = (char *) "sum";
@@ -507,12 +469,6 @@ void GroupBy::Run(Pipe &inPipe, Pipe &outPipe, OrderMaker &groupAtts,
 	this->computeMe = &computeMe;
 	pthread_create(&thread, NULL, Helper, this);
 }
-void GroupBy::WaitUntilDone() {
-	pthread_join(thread, NULL);
-}
-void GroupBy::Use_n_Pages(int n) {
-	this->nPages = n;
-}
 
 void *WriteOut::Helper(void *arg) {
 	WriteOut *wo = (WriteOut *) arg;
@@ -523,9 +479,12 @@ void *WriteOut::Helper(void *arg) {
 void WriteOut::Apply() {
 	Record *tmpRecord = new Record;
 	ComparisonEngine comp;
+	int ctr = 0;
 	while (this->inPipe->Remove(tmpRecord)) {
 		tmpRecord->Print(this->mySchema, (this->outFile));
+		ctr++;
 	}
+	cout << "# of Records " << ctr << endl;
 	delete tmpRecord;
 	fclose(this->outFile);
 }
@@ -535,12 +494,4 @@ void WriteOut::Run(Pipe &inPipe, FILE *outFile, Schema &mySchema) {
 	this->outFile = outFile;
 	this->mySchema = &mySchema;
 	pthread_create(&thread, NULL, Helper, this);
-}
-
-void WriteOut::WaitUntilDone() {
-	pthread_join(thread, NULL);
-}
-
-void WriteOut::Use_n_Pages(int n) {
-	this->nPages = n;
 }

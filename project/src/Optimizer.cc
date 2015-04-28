@@ -332,54 +332,38 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 			string rightAttVal = string(rightAtt->value);
 			this->statistics->GetRelation(rightAttVal, rightRel);
 
-			cout << leftRel << endl;
-			cout << rightRel << endl;
-
 			join = new JoinQPNode();
-			cout << "Size at " << builtJoins->size() << endl;
-	
+
 			// Check if the join has already been done for the relation. i.e. it was already a part of a join.
 			JoinQPNode *leftUpMost = NULL;
 			JoinQPNode *rightUpMost = NULL;
-	
-			try{
+
+			try {
 				leftUpMost = (*builtJoins).at(leftRel);
-			}
-			catch(exception e ){
-				cout<<"leftUpMost threw a null exception" << endl;
+			} catch (exception e) {
 			}
 
-			// Try-catch to initialize rightUpMost
-			try{
-				rightUpMost =(*builtJoins).at(rightRel);
+			try {
+				rightUpMost = (*builtJoins).at(rightRel);
+			} catch (exception e1) {
 			}
-
-			catch(exception e1){
-				cout << "rightUpMost threw a null exception" << endl;
-			}
-
-
 
 			if (leftUpMost == NULL && rightUpMost == NULL) { // !A and !B
-				cout << "Case 1" << endl;
 				join->left = (*selectFromFiles)[leftRel];
 				join->right = (*selectFromFiles)[rightRel];
 			} else if (leftUpMost != NULL) { //A and !B
-				cout << "Case 2" << endl;
 				while (leftUpMost->parent)
 					leftUpMost = leftUpMost->parent;
 				join->left = leftUpMost;
 				leftUpMost->parent = join;
 				join->right = (*selectFromFiles)[rightRel];
 			} else if (rightUpMost != NULL) { //!A and B
-				cout << "Case 3" << endl;
 				while (rightUpMost->parent)
 					rightUpMost = rightUpMost->parent;
 				join->left = rightUpMost;
 				rightUpMost->parent = join;
 				join->right = (*selectFromFiles)[leftRel];
 			} else { // A and B
-				cout << "Case 4" << endl;
 				while (leftUpMost->parent)
 					leftUpMost = leftUpMost->parent;
 				while (rightUpMost->parent)
@@ -402,14 +386,13 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 
 			builtJoins->insert(pair<string, JoinQPNode*>(leftRel, join));
 			builtJoins->insert(pair<string, JoinQPNode*>(rightRel, join));
-			cout << "Size " << builtJoins->size() << endl;
 		}
 	}
 
 	// the selection above join
 	SelectPipeQPNode *selAbvJoin = NULL;
 	if (selAboveJoin.size() > 0) {
-		selAbvJoin = new SelectPipeQPNode;
+		selAbvJoin = new SelectPipeQPNode();
 		if (join == NULL) {
 			selAbvJoin->left = selectFromFiles->begin()->second;
 		} else {
@@ -426,17 +409,15 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 				andList->rightAnd = *it;
 			}
 		}
-		Record literal;
-		CNF cnf;
-		cnf.GrowFromParseTree(andList, selAbvJoin->outputSchema, literal);
-		selAbvJoin->cnf = &cnf;
-		selAbvJoin->literal = &literal;
+		selAbvJoin->literal = new Record();
+		selAbvJoin->cnf->GrowFromParseTree(andList, selAbvJoin->outputSchema,
+				*(selAbvJoin)->literal);
 	}
 
 	//build group by if any
 	GroupByQPNode *groupBy = NULL;
 	if (this->groupAtts != NULL) {
-		groupBy = new GroupByQPNode;
+		groupBy = new GroupByQPNode();
 		if (selAbvJoin != NULL) {
 			groupBy->left = selAbvJoin;
 		} else if (join != NULL) {
@@ -446,9 +427,9 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 		}
 		groupBy->leftInPipeId = groupBy->left->outPipeId;
 		groupBy->outPipeId = queryPlan->pipeNum++;
+		groupBy->CreatePipe();
 		groupBy->orderMaker = this->GenerateOM(groupBy->left->outputSchema);
 		groupBy->func = this->GenerateFunc(groupBy->left->outputSchema);
-		groupBy->CreatePipe();
 
 		Attribute *attr = new Attribute[1];
 		attr[0].name = (char *) "sum";
@@ -502,7 +483,7 @@ QueryPlan * Optimizer::OptimizedQueryPlan() {
 	}
 
 	//-------build the project --------
-	ProjectQPNode *project = new ProjectQPNode;
+	ProjectQPNode *project = new ProjectQPNode();
 	int outputNum = 0;
 	NameList *name = this->attsToSelect;
 	Attribute *outputAtts;

@@ -183,9 +183,8 @@ int CNF::GetSortOrders(OrderMaker &left, OrderMaker &right) {
 }
 
 void CNF::Print() {
-
+	cout << numAnds << endl;
 	for (int i = 0; i < numAnds; i++) {
-
 		cout << "( ";
 		for (int j = 0; j < orLens[i]; j++) {
 			orList[i][j].Print();

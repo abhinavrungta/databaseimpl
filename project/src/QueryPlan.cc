@@ -6,6 +6,7 @@ extern char *dbfile_dir;
 extern char *tpch_dir;
 
 map<int, Pipe*> QueryPlanNode::pipesList;
+vector<RelationalOp*> QueryPlanNode::relOpList;
 
 void QueryPlanNode::ExecutePostOrder() {
 	if (this->left)
@@ -25,7 +26,7 @@ void QueryPlanNode::PrintPostOrder() {
 }
 
 void QueryPlanNode::CreatePipe() {
-	pipesList[outPipeId] = new Pipe(QUERY_PIPE_SIZE);
+	pipesList[outPipeId] = new Pipe(PIPE_SIZE);
 }
 
 // -------------------------------------- select pipe ------------------
@@ -39,11 +40,10 @@ SelectPipeQPNode::SelectPipeQPNode(int in, int out, CNF* pCNF, Record * pLit,
 	cnf = pCNF;
 	literal = pLit;
 	outputSchema = pSch;
-	pipesList[outPipeId] = new Pipe(QUERY_PIPE_SIZE);
+	pipesList[outPipeId] = new Pipe(PIPE_SIZE);
 }
 
 SelectPipeQPNode::~SelectPipeQPNode() {
-	cout << "Decon SP" << endl;
 	if (this->left)
 		delete this->left;
 	if (this->right)
@@ -79,11 +79,11 @@ void SelectPipeQPNode::PrintNode() {
 }
 
 void SelectPipeQPNode::ExecuteNode() {
-	SelectPipe selPipe;
-	selPipe.Use_n_Pages(QUERY_USE_PAGES);
+	SelectPipe *selPipe = new SelectPipe();
 	if (cnf != NULL && literal != NULL) {
-		selPipe.Run(*(pipesList[leftInPipeId]), *(pipesList[outPipeId]), *cnf,
+		selPipe->Run(*(pipesList[leftInPipeId]), *(pipesList[outPipeId]), *cnf,
 				*literal);
+		relOpList.push_back(selPipe);
 	}
 }
 
@@ -98,11 +98,10 @@ SelectFileQPNode::SelectFileQPNode(string inFile, int out, CNF* pCNF,
 	cnf = pCNF;
 	literal = pLit;
 	outputSchema = pScH;
-	pipesList[outPipeId] = new Pipe(QUERY_PIPE_SIZE);
+	pipesList[outPipeId] = new Pipe(PIPE_SIZE);
 }
 
 SelectFileQPNode::~SelectFileQPNode() {
-	cout << "Decon SF" << endl;
 	if (this->left != NULL)
 		delete this->left;
 	if (this->right != NULL)
@@ -143,12 +142,10 @@ void SelectFileQPNode::ExecuteNode() {
 	DBFile * pFile = new DBFile;
 	pFile->Open(const_cast<char*>(sFileName.c_str()));
 
-	SelectFile * pSF = new SelectFile;
-	pSF->Use_n_Pages(QUERY_USE_PAGES);
+	SelectFile * pSF = new SelectFile();
 	if (cnf != NULL && literal != NULL) {
-		cout << "************" << endl;
-		cnf->Print();
 		pSF->Run(*pFile, *(pipesList[outPipeId]), *cnf, *literal);
+		relOpList.push_back(pSF);
 	}
 }
 
@@ -165,7 +162,7 @@ ProjectQPNode::ProjectQPNode(int ip, int op, int *atk, int nKeep, int nTot,
 	iAtttributesToKeep = nKeep;
 	iTotalAttributes = nTot;
 	outputSchema = pSch;
-	pipesList[outPipeId] = new Pipe(QUERY_PIPE_SIZE);
+	pipesList[outPipeId] = new Pipe(PIPE_SIZE);
 }
 
 ProjectQPNode::~ProjectQPNode() {
@@ -201,11 +198,11 @@ void ProjectQPNode::PrintNode() {
 }
 
 void ProjectQPNode::ExecuteNode() {
-	Project P;
-	P.Use_n_Pages(QUERY_USE_PAGES);
+	Project *P = new Project();
 	if (attributeList != NULL) {
-		P.Run(*(pipesList[leftInPipeId]), *(pipesList[outPipeId]),
+		P->Run(*(pipesList[leftInPipeId]), *(pipesList[outPipeId]),
 				attributeList, iTotalAttributes, iAtttributesToKeep);
+		relOpList.push_back(P);
 	}
 }
 
@@ -221,7 +218,7 @@ JoinQPNode::JoinQPNode(int ip1, int ip2, int op, CNF* pCNF, Schema * pSch,
 	cnf = pCNF;
 	outputSchema = pSch;
 	literal = pLit;
-	pipesList[outPipeId] = new Pipe(QUERY_PIPE_SIZE);
+	pipesList[outPipeId] = new Pipe(PIPE_SIZE);
 }
 
 JoinQPNode::~JoinQPNode() {
@@ -248,11 +245,12 @@ void JoinQPNode::PrintNode() {
 }
 
 void JoinQPNode::ExecuteNode() {
-	Join J;
-	J.Use_n_Pages(QUERY_USE_PAGES);
+	Join *J = new Join();
+	J->Use_n_Pages(USE_PAGES);
 	if (cnf != NULL && literal != NULL) {
-		J.Run(*(pipesList[leftInPipeId]), *(pipesList[rightInPipeId]),
+		J->Run(*(pipesList[leftInPipeId]), *(pipesList[rightInPipeId]),
 				*(pipesList[outPipeId]), *cnf, *literal);
+		relOpList.push_back(J);
 	}
 }
 
@@ -267,7 +265,7 @@ GroupByQPNode::GroupByQPNode(int ip, int op, Function *pF, OrderMaker *pOM,
 	func = pF;
 	orderMaker = pOM;
 	outputSchema = pSch;
-	pipesList[outPipeId] = new Pipe(QUERY_PIPE_SIZE);
+	pipesList[outPipeId] = new Pipe(PIPE_SIZE);
 }
 
 GroupByQPNode::~GroupByQPNode() {
@@ -310,11 +308,11 @@ void GroupByQPNode::PrintNode() {
 }
 
 void GroupByQPNode::ExecuteNode() {
-	GroupBy G;
-	G.Use_n_Pages(QUERY_USE_PAGES);
+	GroupBy *G = new GroupBy();
 	if (func != NULL && orderMaker != NULL) {
-		G.Run(*(pipesList[leftInPipeId]), *(pipesList[outPipeId]), *orderMaker,
+		G->Run(*(pipesList[leftInPipeId]), *(pipesList[outPipeId]), *orderMaker,
 				*func);
+		relOpList.push_back(G);
 	}
 }
 
@@ -327,7 +325,7 @@ SumQPNode::SumQPNode(int ip, int op, Function *pF, bool bPrint, Schema *pSch) {
 	outPipeId = op;
 	func = pF;
 	outputSchema = pSch;
-	pipesList[outPipeId] = new Pipe(QUERY_PIPE_SIZE);
+	pipesList[outPipeId] = new Pipe(PIPE_SIZE);
 }
 
 SumQPNode::~SumQPNode() {
@@ -358,10 +356,10 @@ void SumQPNode::PrintNode() {
 }
 
 void SumQPNode::ExecuteNode() {
-	Sum S;
-	S.Use_n_Pages(QUERY_USE_PAGES);
+	Sum *S = new Sum();
 	if (func != NULL) {
-		S.Run(*(pipesList[leftInPipeId]), *(pipesList[outPipeId]), *func);
+		S->Run(*(pipesList[leftInPipeId]), *(pipesList[outPipeId]), *func);
+		relOpList.push_back(S);
 	}
 }
 
@@ -373,7 +371,7 @@ DistinctQPNode::DistinctQPNode(int ip, int op, Schema * pSch) {
 	leftInPipeId = ip;
 	outPipeId = op;
 	outputSchema = pSch;
-	pipesList[outPipeId] = new Pipe(QUERY_PIPE_SIZE);
+	pipesList[outPipeId] = new Pipe(PIPE_SIZE);
 }
 
 DistinctQPNode::~DistinctQPNode() {
@@ -402,11 +400,11 @@ void DistinctQPNode::PrintNode() {
 }
 
 void DistinctQPNode::ExecuteNode() {
-	DuplicateRemoval DR;
-	DR.Use_n_Pages(QUERY_USE_PAGES);
+	DuplicateRemoval *DR = new DuplicateRemoval();
 	if (outputSchema != NULL) {
-		DR.Run(*(pipesList[leftInPipeId]), *(pipesList[outPipeId]),
+		DR->Run(*(pipesList[leftInPipeId]), *(pipesList[outPipeId]),
 				*outputSchema);
+		relOpList.push_back(DR);
 	}
 }
 
@@ -446,7 +444,7 @@ void WriteOutQPNode::PrintNode() {
 }
 
 void WriteOutQPNode::ExecuteNode() {
-	WriteOut W;
+	WriteOut *W = new WriteOut();
 	if (outputSchema != NULL && !outFileName.empty()) {
 		FILE * pFILE;
 		if (strcmp(outFileName.c_str(), "STDOUT") == 0) {
@@ -454,9 +452,8 @@ void WriteOutQPNode::ExecuteNode() {
 		} else {
 			pFILE = fopen((char*) outFileName.c_str(), "w");
 		}
-		W.Run(*(pipesList[leftInPipeId]), pFILE, *outputSchema);
-		W.WaitUntilDone();
-		fclose(pFILE);
+		W->Run(*(pipesList[leftInPipeId]), pFILE, *outputSchema);
+		relOpList.push_back(W);
 	}
 }
 
@@ -539,6 +536,14 @@ int QueryPlan::ExecuteQueryPlan() {
 				this->outputType, this->root->outputSchema);
 		writeOut->left = this->root;
 		writeOut->ExecutePostOrder();
+		cout << "Starting Wait" << endl;
+		int ctr = 0;
+		for (vector<RelationalOp*>::iterator it =
+				QueryPlanNode::relOpList.begin();
+				it != QueryPlanNode::relOpList.end(); it++) {
+			cout << ctr++ << endl;
+			(*it)->WaitUntilDone();
+		}
 	}
 	return 1;
 }

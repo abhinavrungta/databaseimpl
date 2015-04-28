@@ -13,8 +13,6 @@
 #include <vector>
 
 using namespace std;
-#define QUERY_PIPE_SIZE 100
-#define QUERY_USE_PAGES 100
 
 class QueryPlanNode {
 public:
@@ -23,6 +21,7 @@ public:
 	Schema * outputSchema;
 	CNF* cnf;
 	static map<int, Pipe*> pipesList;
+	static vector<RelationalOp*> relOpList;
 
 	// left and right children (tree structure)
 	QueryPlanNode * left;

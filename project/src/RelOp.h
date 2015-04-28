@@ -15,10 +15,10 @@ class RelationalOp {
 public:
 	// blocks the caller until the particular relational operator 
 	// has run to completion
-	virtual void WaitUntilDone() = 0;
+	virtual void WaitUntilDone();
 
 	// tell us how much internal memory the operation can use
-	virtual void Use_n_Pages(int n) = 0;
+	virtual void Use_n_Pages(int n);
 
 	virtual void Apply() = 0;
 
@@ -36,8 +36,6 @@ private:
 	Record *literal;
 public:
 	void Run(DBFile &inFile, Pipe &outPipe, CNF &cnf, Record &literal);
-	void WaitUntilDone();
-	void Use_n_Pages(int n);
 	void Apply();
 };
 
@@ -49,8 +47,6 @@ private:
 	Record *literal;
 public:
 	void Run(Pipe &inPipe, Pipe &outPipe, CNF &cnf, Record &literal);
-	void WaitUntilDone();
-	void Use_n_Pages(int n);
 	void Apply();
 };
 
@@ -63,8 +59,6 @@ private:
 public:
 	void Run(Pipe &inPipe, Pipe &outPipe, int *keepMe, int numAttsInput,
 			int numAttsOutput);
-	void WaitUntilDone();
-	void Use_n_Pages(int n);
 	void Apply();
 };
 
@@ -78,8 +72,6 @@ private:
 public:
 	void Run(Pipe &inPipeL, Pipe &inPipeR, Pipe &outPipe, CNF &cnf,
 			Record &literal);
-	void WaitUntilDone();
-	void Use_n_Pages(int n);
 	void Apply();
 };
 class DuplicateRemoval: public RelationalOp {
@@ -89,8 +81,6 @@ private:
 	Schema *mySchema;
 public:
 	void Run(Pipe &inPipe, Pipe &outPipe, Schema &mySchema);
-	void WaitUntilDone();
-	void Use_n_Pages(int n);
 	void Apply();
 };
 class Sum: public RelationalOp {
@@ -100,8 +90,6 @@ private:
 	Function *computeMe;
 public:
 	void Run(Pipe &inPipe, Pipe &outPipe, Function &computeMe);
-	void WaitUntilDone();
-	void Use_n_Pages(int n);
 	void Apply();
 };
 class GroupBy: public RelationalOp {
@@ -113,8 +101,6 @@ private:
 public:
 	void Run(Pipe &inPipe, Pipe &outPipe, OrderMaker &groupAtts,
 			Function &computeMe);
-	void WaitUntilDone();
-	void Use_n_Pages(int n);
 	void Apply();
 };
 class WriteOut: public RelationalOp {
@@ -126,8 +112,6 @@ private:
 
 public:
 	void Run(Pipe &inPipe, FILE *outFile, Schema &mySchema);
-	void WaitUntilDone();
-	void Use_n_Pages(int n);
 	void Apply();
 };
 #endif

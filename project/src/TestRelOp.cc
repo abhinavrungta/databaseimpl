@@ -93,7 +93,7 @@ TEST_F(RelOpTest, q1) {
 	CNF cnf;
 	Record rec;
 	SelectFile sf;
-	init_SF(pred_ps, 100, db, cnf, rec, sf, rel);
+	init_SF(pred_ps, buffsz, db, cnf, rec, sf, rel);
 
 	Pipe *pip = new Pipe(pipesz);
 	sf.Run(db, *pip, cnf, rec);
@@ -113,7 +113,7 @@ TEST_F(RelOpTest, q2) {
 	DBFile db;
 	CNF cnf;
 	Record rec;
-	init_SF(pred_p, 100, db, cnf, rec, sf, rel);
+	init_SF(pred_p, buffsz, db, cnf, rec, sf, rel);
 
 	Project P_p;
 	Pipe _out(pipesz);
@@ -146,7 +146,7 @@ TEST_F(RelOpTest, q3) {
 	Record rec;
 	relation *rel_s = new relation("supplier",
 			new Schema(catalog_path, "supplier"), dbfile_dir);
-	init_SF(pred_s, 100, db, cnf, rec, sf, rel_s);
+	init_SF(pred_s, buffsz, db, cnf, rec, sf, rel_s);
 	Pipe *pip = new Pipe(pipesz);
 	sf.Run(db, *pip, cnf, rec);
 
@@ -157,7 +157,7 @@ TEST_F(RelOpTest, q3) {
 	Record rec2;
 	relation *rel_ps = new relation("partsupp",
 			new Schema(catalog_path, "partsupp"), dbfile_dir);
-	init_SF(pred_ps, 100, db2, cnf2, rec2, sf2, rel_ps);
+	init_SF(pred_ps, buffsz, db2, cnf2, rec2, sf2, rel_ps);
 	Pipe *pip2 = new Pipe(pipesz);
 	sf2.Run(db2, *pip2, cnf2, rec2);
 

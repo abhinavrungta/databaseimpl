@@ -93,7 +93,7 @@ TEST_F(DBFileTest, Next) {
 	// grow the CNF expression from the parse tree
 	CNF myComparison;
 	Record literal;
-	myComparison.GrowFromParseTree(final, rel->schema(), literal);
+	myComparison.GrowFromParseTree(boolean, rel->schema(), literal);
 
 	char tbl_path[100]; // construct path of the tpch flat text file
 	sprintf(tbl_path, "%s%s.tbl", tpch_dir, rel->name());
