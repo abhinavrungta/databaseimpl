@@ -30,8 +30,8 @@ ifdef linux
 tag = -n
 endif
 
-main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o Statistics.o Optimizer.o QueryPlan.o y.tab.o lex.yy.o main.o
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o Statistics.o Optimizer.o QueryPlan.o y.tab.o lex.yy.o main.o -o $@
+main: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o Statistics.o QueryPlanNode.o QueryPlan.o y.tab.o lex.yy.o main.o
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o main Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o Statistics.o QueryPlanNode.o QueryPlan.o y.tab.o lex.yy.o main.o -o $@
 	
 test: Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o Statistics.o y.tab.o lex.yy.o test.o
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -pthread -o test Record.o Comparison.o ComparisonEngine.o Schema.o File.o BigQ.o DBFile.o Pipe.o Heap.o Sorted.o RelOp.o Function.o Statistics.o y.tab.o lex.yy.o test.o -o $@
@@ -105,8 +105,8 @@ Function.o: Function.cc
 Statistics.o: Statistics.cc
 	$(CC) -g -c Statistics.cc
 	
-Optimizer.o: Optimizer.cc
-	$(CC) -g -c Optimizer.cc
+QueryPlanNode.o: QueryPlanNode.cc
+	$(CC) -g -c QueryPlanNode.cc
 	
 QueryPlan.o: QueryPlan.cc
 	$(CC) -g -c QueryPlan.cc
@@ -134,4 +134,5 @@ clean:
 	rm -rf a1test
 	rm -rf a2test
 	rm -rf a3test
+	rm -rf test
 	rm -rf main

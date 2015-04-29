@@ -2,143 +2,50 @@
 #ifndef QUERYPLAN_H_
 #define QUERYPLAN_H_
 
-#include "RelOp.h"
-#include "Pipe.h"
 #include <map>
-#include <string.h>
-#include "ParseTree.h"
-#include "DBFile.h"
-#include <iostream>
-#include <fstream>
 #include <vector>
+#include <string>
+#include <iostream>
+
+#include "DBFile.h"
+#include "ParseTree.h"
+#include "Pipe.h"
+#include "RelOp.h"
+#include "QueryPlanNode.h"
+#include "Statistics.h"
+#include "Record.h"
+#include "Defs.h"
+#include "Schema.h"
+#include "Comparison.h"
+#include "ComparisonEngine.h"
+#include "Function.h"
+
+extern char *catalog_path;
+extern char *dbfile_dir;
+extern char *tpch_dir;
 
 using namespace std;
 
-class QueryPlanNode {
-public:
-	// common members
-	int leftInPipeId, outPipeId;
-	Schema * outputSchema;
-	CNF* cnf;
-	static map<int, Pipe*> pipesList;
-	static vector<RelationalOp*> relOpList;
-
-	// left and right children (tree structure)
-	QueryPlanNode * left;
-	QueryPlanNode * right;
-
-	QueryPlanNode() :
-			leftInPipeId(-1), outPipeId(-1), left(
-			NULL), right(NULL), outputSchema(NULL) {
-		cnf = new CNF;
-	}
-
-	virtual void PrintNode() = 0;
-	void ExecutePostOrder();
-	void PrintPostOrder();
-	void CreatePipe();
-	virtual void ExecuteNode() = 0;
-	virtual ~QueryPlanNode() {
-	}
-};
-
-class SelectPipeQPNode: public QueryPlanNode {
-public:
-	Record * literal;
-
-	SelectPipeQPNode();
-	SelectPipeQPNode(int in, int out, CNF* pCNF, Record * pLit, Schema * pSch);
-	~SelectPipeQPNode();
-	void PrintNode();
-	void ExecuteNode();
-};
-
-class SelectFileQPNode: public QueryPlanNode {
-public:
-	string sFileName;
-	Record * literal;
-
-	SelectFileQPNode();
-	SelectFileQPNode(string inFile, int out, CNF* pCNF, Record * pLit,
-			Schema * pSch);
-	~SelectFileQPNode();
-	void PrintNode();
-	void ExecuteNode();
-};
-
-class ProjectQPNode: public QueryPlanNode {
-public:
-	int * attributeList;
-	int iAtttributesToKeep, iTotalAttributes;
-
-	ProjectQPNode();
-	ProjectQPNode(int ip, int op, int *atk, int nKeep, int nTot, Schema * pSch);
-	~ProjectQPNode();
-	void PrintNode();
-	void ExecuteNode();
-};
-
-class JoinQPNode: public QueryPlanNode {
-public:
-	int rightInPipeId;
-	Record * literal;
-	JoinQPNode * parent;
-
-	JoinQPNode();
-	JoinQPNode(int ip1, int ip2, int op, CNF* pCNF, Schema * pSch,
-			Record * pLit);
-	~JoinQPNode();
-	void PrintNode();
-	void ExecuteNode();
-};
-
-class SumQPNode: public QueryPlanNode {
-public:
-	Function * func;
-
-	SumQPNode();
-	SumQPNode(int ip, int op, Function *pF, bool bPrint, Schema * pSch);
-	~SumQPNode();
-	void PrintNode();
-	void ExecuteNode();
-};
-
-class GroupByQPNode: public QueryPlanNode {
-public:
-	Function * func;
-	OrderMaker * orderMaker;
-
-	GroupByQPNode();
-	GroupByQPNode(int ip, int op, Function *pF, OrderMaker *pOM, Schema * pSch);
-	~GroupByQPNode();
-	void PrintNode();
-	void ExecuteNode();
-};
-
-class DistinctQPNode: public QueryPlanNode {
-public:
-	DistinctQPNode();
-	DistinctQPNode(int ip, int op, Schema * pSch);
-	~DistinctQPNode();
-	void PrintNode();
-	void ExecuteNode();
-};
-
-class WriteOutQPNode: public QueryPlanNode {
-public:
-	string outFileName;
-
-	WriteOutQPNode();
-	WriteOutQPNode(int ip, string outFile, Schema * pSch);
-	~WriteOutQPNode();
-	void PrintNode();
-	void ExecuteNode();
-};
-
 class QueryPlan {
-	char* catalog_path;
-	char* dbfile_dir;
-	char* tpch_dir;
+private:
+	struct FuncOperator * finalFunction; //function in aggregation
+	struct TableList * tables;   // Tables in FROM CLAUSE
+	struct AndList *cnfAndList;  // AndList from WHER CLAUSE
+	struct NameList * groupAtts; // grouping atts (NULL if no grouping)
+	struct NameList * attsToSelect; // the set of attributes in the SELECT (NULL if no such atts)
+	int distinctAtts; // 1 if there is a DISTINCT in a non-aggregate query
+	int distinctFunc;  // 1 if there is a DISTINCT in an aggregate query
+	Statistics *statistics;
+
+	void GetJoinsAndSelects(vector<AndList*> &joins, vector<AndList*> &selects,
+			vector<AndList*> &selAboveJoin);
+
+	map<string, AndList*>* OptimizeSelectAndApply(vector<AndList*> selects);
+	vector<AndList*>* OptimizeJoinOrder(vector<AndList*> joins);
+
+	Function *GenerateFunc(Schema *schema);
+	OrderMaker *GenerateOM(Schema *schema);
+
 public:
 	QueryPlan();
 	virtual ~QueryPlan();
@@ -147,7 +54,12 @@ public:
 	int pipeNum;
 	char* outputType;
 
-	void PrintInOrder();
+	void updateInput(struct FuncOperator *finalFunction,
+			struct TableList *tables, struct AndList * boolean,
+			struct NameList * pGrpAtts, struct NameList * pAttsToSelect,
+			int distinct_atts, int distinct_func, Statistics *);
+	void clearQuery();
+	int CreatePlan();
 	int ExecuteQueryPlan();
 	int ExecuteCreateTable(CreateTable*);
 	int ExecuteInsertFile(InsertFile*);

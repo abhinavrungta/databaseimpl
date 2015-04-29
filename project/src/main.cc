@@ -1,7 +1,5 @@
 #include <iostream>
-#include <fstream>
 #include "Defs.h"
-#include "Optimizer.h"
 #include "QueryPlan.h"
 #include "ParseTree.h"
 #include <time.h>
@@ -32,56 +30,76 @@ char *catalog_path;
 char *dbfile_dir;
 char *tpch_dir;
 
+#ifndef MY_HEADER_
+#define MY_HEADER_
+inline void clear() {
+	createTable = NULL;
+	insertFile = NULL;
+	dropTableName = NULL;
+	setOutPut = NULL;
+	finalFunction = NULL;
+	tables = NULL;
+	boolean = NULL;
+	groupingAtts = NULL;
+	attsToSelect = NULL;
+	distinctAtts = distinctFunc = 0;
+}
+#endif
+
 int main() {
 
 	catalog_path = "catalog";		// full path of the catalog file
 	dbfile_dir = "/Users/abhinavrungta/gitlab/databaseimpl/dbfile/"; // dir where binary heap files should be stored
 	tpch_dir = "/Users/abhinavrungta/gitlab/databaseimpl/db/"; // dir where dbgen tpch files (extension *.tbl) can be found
 
-	yyparse();
-
 	QueryPlan *queryPlan = new QueryPlan();
-	if (quit) {
-		cout << "Exited" << endl;
-		return 0;
+	while (true) {
+		if (yyparse() != 0) {
+			cout << "Can't parse your CNF.\n";
+			continue;
+		}
+		if (quit) {
+			cout << "Exited" << endl;
+			return 0;
+		}
+
+		if (createTable) {
+			if (queryPlan->ExecuteCreateTable(createTable)) {
+				cout << "Created table" << createTable->tableName << endl;
+			}
+		} else if (insertFile) {
+			if (queryPlan->ExecuteInsertFile(insertFile)) {
+				cout << "Loaded file " << insertFile->fileName << " into "
+						<< insertFile->tableName << endl;
+			}
+		} else if (dropTableName) {
+			if (queryPlan->ExecuteDropTable(dropTableName)) {
+				cout << "Dropped dbfile" << dropTableName << endl;
+			}
+		} else if (setOutPut) {
+			queryPlan->outputType = setOutPut;
+		} else if (tables) { // query
+			//now we have all the info in the above data structure
+			Statistics *s = new Statistics();
+			s->LoadAllStatistics();
+			queryPlan->updateInput(finalFunction, tables, boolean, groupingAtts,
+					attsToSelect, distinctAtts, distinctFunc, s);
+
+			if (queryPlan->CreatePlan() == 0) {
+				cerr << "ERROR in building query Plan!" << endl;
+				exit(0);
+			}
+
+			time_t t1;
+			time(&t1);
+			queryPlan->ExecuteQueryPlan();
+			time_t t2;
+			time(&t2);
+			cout << "Execution took " << difftime(t2, t1) << " seconds!"
+					<< endl;
+			queryPlan->clearQuery();
+		}
+		clear();
 	}
-
-	if (createTable) {
-		if (queryPlan->ExecuteCreateTable(createTable)) {
-			cout << "Created table" << createTable->tableName << endl;
-		}
-	} else if (insertFile) {
-		if (queryPlan->ExecuteInsertFile(insertFile)) {
-			cout << "Loaded file " << insertFile->fileName << " into "
-					<< insertFile->tableName << endl;
-		}
-	} else if (dropTableName) {
-		if (queryPlan->ExecuteDropTable(dropTableName)) {
-			cout << "Dropped dbfile" << dropTableName << endl;
-		}
-	} else if (setOutPut) {
-		queryPlan->outputType = setOutPut;
-	} else if (tables) { // query
-		//now we have all the info in the above data structure
-		Statistics *s = new Statistics();
-		s->LoadAllStatistics();
-		Optimizer optimizer(finalFunction, tables, boolean, groupingAtts,
-				attsToSelect, distinctAtts, distinctFunc, s);
-
-		QueryPlan *queryPlan = optimizer.OptimizedQueryPlan();
-		if (queryPlan == NULL) {
-			cerr << "ERROR in building query Plan!" << endl;
-			exit(0);
-		}
-
-		time_t t1;
-		time(&t1);
-		cout << "Exec Plan" << endl;
-		queryPlan->ExecuteQueryPlan();
-		time_t t2;
-		time(&t2);
-		cout << "Execution took " << difftime(t2, t1) << " seconds!" << endl;
-	}
-
 	return 0;
 }

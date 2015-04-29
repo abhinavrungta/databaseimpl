@@ -69,6 +69,7 @@ void SelectPipe::Run(Pipe &inPipe, Pipe &outPipe, CNF &selOp, Record &literal) {
 	this->inPipe = &inPipe;
 	this->outPipe = &outPipe;
 	this->cnf = &selOp;
+	this->literal = new Record();
 	this->literal->Copy(&literal);
 	pthread_create(&thread, NULL, Helper, this);
 }
