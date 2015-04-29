@@ -324,7 +324,7 @@ int QueryPlan::CreatePlan() {
 	map<string, JoinQPNode *>* builtJoins = new map<string, JoinQPNode*>();
 	JoinQPNode *join = NULL;
 
-	if (orderedJoins->size() > 0) {
+	if (joins.size() > 0) {
 		for (vector<AndList*>::iterator jIt = orderedJoins->begin();
 				jIt != orderedJoins->end(); jIt++) {
 			AndList *aAndList = *jIt;
@@ -632,17 +632,15 @@ int QueryPlan::ExecuteQueryPlan() {
 	if (strcmp(this->outputType, "NONE") == 0) { //just print out the query plan
 		this->root->PrintPostOrder();
 	} else {
-		this->root->PrintPostOrder();
 		WriteOutQPNode *writeOut = new WriteOutQPNode(this->root->outPipeId,
 				this->outputType, this->root->outputSchema);
 		writeOut->left = this->root;
+		writeOut->PrintPostOrder();
 		writeOut->ExecutePostOrder();
-		cout << "Starting Wait" << endl;
-		int ctr = 0;
+
 		for (vector<RelationalOp*>::iterator it =
 				QueryPlanNode::relOpList.begin();
 				it != QueryPlanNode::relOpList.end(); it++) {
-			cout << ctr++ << endl;
 			(*it)->WaitUntilDone();
 		}
 	}

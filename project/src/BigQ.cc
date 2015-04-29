@@ -140,8 +140,8 @@ int BigQ::updateRecordBuffer(int i) {
 int BigQ::MergeRuns() {
 	tmpFile.Close();
 	tmpFile.Open(1, fileName);
-	cout << "No of Runs" << noOfRuns << endl;
 	if (noOfRuns < 1) {
+		output->ShutDown();	// this is required to avoid deadlock
 		return 0;
 	}
 
@@ -149,7 +149,6 @@ int BigQ::MergeRuns() {
 	recordBuffer.reserve(noOfRuns);
 	startPageIndex.reserve(noOfRuns);
 	PageCtrPerRun.reserve(noOfRuns);
-
 // Initialize Page Ctr and Start Index Array.
 	PageCtrPerRun.insert(PageCtrPerRun.begin(), noOfRuns, 0);
 	startPageIndex.insert(startPageIndex.begin(), 0);

@@ -10,7 +10,6 @@ void QueryPlanNode::ExecutePostOrder() {
 		this->left->ExecutePostOrder();
 	if (this->right)
 		this->right->ExecutePostOrder();
-	cout << "Pipe id" << this->outPipeId << endl;
 	this->ExecuteNode();
 }
 

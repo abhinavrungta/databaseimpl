@@ -60,9 +60,9 @@ void SelectPipe::Apply() {
 		if (comp.Compare(tmpRecord, this->literal, this->cnf)) {
 			this->outPipe->Insert(tmpRecord);
 		}
-		delete tmpRecord;
-		this->outPipe->ShutDown();
 	}
+	delete tmpRecord;
+	this->outPipe->ShutDown();
 }
 
 void SelectPipe::Run(Pipe &inPipe, Pipe &outPipe, CNF &selOp, Record &literal) {
@@ -487,7 +487,10 @@ void WriteOut::Apply() {
 	}
 	cout << "# of Records " << ctr << endl;
 	delete tmpRecord;
-	fclose(this->outFile);
+	if (this->outFile != stdout) {
+		fclose(this->outFile);
+	}
+
 }
 
 void WriteOut::Run(Pipe &inPipe, FILE *outFile, Schema &mySchema) {

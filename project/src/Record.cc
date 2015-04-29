@@ -389,7 +389,7 @@ void Record::Print(Schema *mySchema, FILE *out) {
 			// then is a character string
 		} else if (atts[i].myType == String) {
 			char *myString = (char *) &(bits[pointer]);
-			fprintf(out, "%s", *myString);
+			fprintf(out, "%s", myString);
 		}
 
 		fputs("]", out);
