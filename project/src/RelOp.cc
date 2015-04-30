@@ -12,6 +12,12 @@
 #include "Record.h"
 #include "Schema.h"
 
+#define CLEANUPVECTOR(v) \
+	({ for(vector<Record *>::iterator it = v.begin(); it!=v.end(); it++) { \
+		if(!*it) { delete *it; } }\
+		v.clear();\
+})
+
 void RelationalOp::WaitUntilDone() {
 	pthread_join(thread, NULL);
 }
@@ -109,158 +115,195 @@ void *Join::Helper(void *arg) {
 }
 
 void Join::Apply() {
-	Record *lRec = new Record();
-	Record *rRec = new Record();
-	ComparisonEngine comp;
+	OrderMaker orderL;
+	OrderMaker orderR;
+	this->cnf->GetSortOrders(orderL, orderR);
 
-	OrderMaker *leftOrder = new OrderMaker();
-	OrderMaker *rightOrder = new OrderMaker();
-	if (this->cnf->GetSortOrders(*leftOrder, *rightOrder)) {
-		Pipe *leftSortPipe = new Pipe(PIPE_SIZE);
-		BigQ *bigQL = new BigQ(*(this->inPipeL), *leftSortPipe, *leftOrder,
-		RUNLEN);
+	//----------sort-merge Join-----------
+	if (orderL.numAtts && orderR.numAtts && orderL.numAtts == orderR.numAtts) {
+		//means we can do a sort-merge join
+		Pipe pipeL(PIPE_SIZE), pipeR(PIPE_SIZE);
+		BigQ *bigQL = new BigQ(*(this->inPipeL), pipeL, orderL, RUNLEN);
+		BigQ *bigQR = new BigQ(*(this->inPipeR), pipeR, orderR, RUNLEN);
 
-		Pipe *rightSortPipe = new Pipe(PIPE_SIZE);
-		BigQ *bigQR = new BigQ(*(this->inPipeR), *rightSortPipe, *rightOrder,
-		RUNLEN);
-
+		//next get tuples out in order from pipeL and pipeR, and put the equal tuples into two vectors
+		//then cross-multiply them
+		vector<Record *> vectorL;
 		vector<Record *> vectorR;
-		if (leftSortPipe->Remove(lRec) && rightSortPipe->Remove(rRec)) {
-			// Get Number of Attributes from both relations.
-			int leftAttr = lRec->GetNumAtts();
-			int rightAttr = rRec->GetNumAtts();
-			int attrToKeep[leftAttr + rightAttr];
+		Record *rcdL = new Record();
+		Record *rcdR = new Record();
+		ComparisonEngine cmp;
+
+		if (pipeL.Remove(rcdL) && pipeR.Remove(rcdR)) {
+			int leftAttr = ((int *) rcdL->bits)[1] / sizeof(int) - 1;
+			int rightAttr = ((int *) rcdR->bits)[1] / sizeof(int) - 1;
+			int totalAttr = leftAttr + rightAttr;
+			int attrToKeep[totalAttr];
 			for (int i = 0; i < leftAttr; i++)
 				attrToKeep[i] = i;
 			for (int i = 0; i < rightAttr; i++)
 				attrToKeep[i + leftAttr] = i;
+			int joinNum;
 
-			bool moreInLeft = true;
-			// there are records in left relation.
-			while (moreInLeft) {
-				moreInLeft = false;
-				// create a vector of records matching current record from right relation, only do this if records not already present.
-				if (!vectorR.size()) {
+			bool leftOK = true, rightOK = true; //means that rcdL and rcdR are both ok
+			int num = 0;
+			while (leftOK && rightOK) {
+				leftOK = false;
+				rightOK = false;
+				int cmpRst = cmp.Compare(rcdL, &orderL, rcdR, &orderR);
+				switch (cmpRst) {
+				case 0: // L == R
+				{
+					num++;
+					Record *rcd1 = new Record();
+					rcd1->Consume(rcdL);
 					Record *rcd2 = new Record();
-					rcd2->Consume(rRec);
+					rcd2->Consume(rcdR);
+					vectorL.push_back(rcd1);
 					vectorR.push_back(rcd2);
-					//get rcds from PipeR that equal to rRec
-					while (rightSortPipe->Remove(rRec)) {
-						if (0 == comp.Compare(rRec, rcd2, rightOrder)) { // equal
-							Record *cRMe = new Record();
-							cRMe->Consume(rRec);
-							vectorR.push_back(cRMe);
+
+					//get rcds from pipeL that equal to rcdL
+					while (pipeL.Remove(rcdL)) {
+						if (0 == cmp.Compare(rcdL, rcd1, &orderL)) { // equal
+							Record *cLMe = new Record();
+							cLMe->Consume(rcdL);
+							vectorL.push_back(cLMe);
 						} else {
-							// more in right = true;
+							leftOK = true;
 							break;
 						}
 					}
-				}
-
-				int res = comp.Compare(lRec, leftOrder, vectorR.front(),
-						rightOrder);
-				if (res == 0) {
-					Record *tmpRec = new Record, *jointRec = NULL;
-					for (int i = 0; i < vectorR.size(); i++) {
-						//join and push to output
-						if (comp.Compare(lRec, vectorR.at(i), this->literal,
-								this->cnf)) {
-							tmpRec->Copy(vectorR.at(i));
-							jointRec = new Record;
-							jointRec->MergeRecords(lRec, tmpRec, leftAttr,
-									rightAttr, attrToKeep, leftAttr + rightAttr,
-									leftAttr);
-							this->outPipe->Insert(jointRec);
+					//get rcds from PipeR that equal to rcdR
+					while (pipeR.Remove(rcdR)) {
+						if (0 == cmp.Compare(rcdR, rcd2, &orderR)) { // equal
+							Record *cRMe = new Record();
+							cRMe->Consume(rcdR);
+							vectorR.push_back(cRMe);
+						} else {
+							rightOK = true;
+							break;
 						}
 					}
-					// get next record in left relation.
-					if (leftSortPipe->Remove(lRec))
-						moreInLeft = true;
-				} else if (res > 0) {
-					// L > R
-					moreInLeft = true;
-					vectorR.clear();
-					if (!rightSortPipe->Remove(rRec))
-						break;
-				} else {
-					// L < R
-					if (leftSortPipe->Remove(lRec))
-						moreInLeft = true;
+					//now we have the two vectors that can do cross product
+					Record *lr = new Record, *rr = new Record, *jr = new Record;
+					for (vector<Record *>::iterator itL = vectorL.begin();
+							itL != vectorL.end(); itL++) {
+						lr->Consume(*itL);
+						for (vector<Record *>::iterator itR = vectorR.begin();
+								itR != vectorR.end(); itR++) {
+							//join and output
+							if (1
+									== cmp.Compare(lr, *itR, this->literal,
+											this->cnf)) {
+								joinNum++;
+								rr->Copy(*itR);
+								jr->MergeRecords(lr, rr, leftAttr, rightAttr,
+										attrToKeep, leftAttr + rightAttr,
+										leftAttr);
+								this->outPipe->Insert(jr);
+							}
+						}
+					}
+					CLEANUPVECTOR(vectorL);
+					CLEANUPVECTOR(vectorR);
+
+					break;
+				}
+				case 1: // L > R
+					leftOK = true;
+					if (pipeR.Remove(rcdR))
+						rightOK = true;
+					break;
+				case -1: // L < R
+					rightOK = true;
+					if (pipeL.Remove(rcdL))
+						leftOK = true;
+					break;
 				}
 			}
 		}
 	} else { //----------Block Nested Loop Join-----------------
-		// store part of left relation in a buffer to avoid bottleneck of the pipe. write the right relation to a DBFile.
-		Page tmpPage;
-		DBFile tmpDbFile;
-		tmpDbFile.Create((char*) "tmpL", heap, NULL);
-		tmpDbFile.Open("tmpL");
+		//assume the size of left relation is less than right relation
+		int n_pages = 10;
+		// take n_pages-1 pages from right, and 1 page from left
+		Record *rcdL = new Record;
+		Record *rcdR = new Record;
+		Page pageR;
+		DBFile dbFileL;
+		fType ft = heap;
+		dbFileL.Create((char*) "tmpL", ft, NULL);
+		dbFileL.MoveFirst();
 
-		if (this->inPipeL->Remove(lRec) && this->inPipeR->Remove(rRec)) {
-			// Get Number of Attributes from both relations.
-			int leftAttr = lRec->GetNumAtts();
-			int rightAttr = rRec->GetNumAtts();
-			int attrToKeep[leftAttr + rightAttr];
+		int leftAttr, rightAttr, totalAttr, *attrToKeep;
+
+		if (this->inPipeL->Remove(rcdL) && this->inPipeR->Remove(rcdR)) {
+			//figure out the attributes of LHS record and RHS record
+			leftAttr = ((int *) rcdL->bits)[1] / sizeof(int) - 1;
+			rightAttr = ((int *) rcdR->bits)[1] / sizeof(int) - 1;
+			totalAttr = leftAttr + rightAttr;
+			attrToKeep = new int[totalAttr];
 			for (int i = 0; i < leftAttr; i++)
 				attrToKeep[i] = i;
 			for (int i = 0; i < rightAttr; i++)
 				attrToKeep[i + leftAttr] = i;
-
-			// add all the recs to a DBFile
 			do {
-				tmpDbFile.Add(*rRec);
-			} while (this->inPipeR->Remove(rRec));
+				dbFileL.Add(*rcdL);
+			} while (this->inPipeL->Remove(rcdL));
 
-			vector<Record *> buffer;
+			vector<Record *> vectorR;
+			ComparisonEngine cmp;
 
-			bool moreInLeft = true;
-			while (moreInLeft) {
-				moreInLeft = false;
+			bool rMore = true;
+			int joinNum = 0;
+			while (rMore) {
 				Record *first = new Record();
-				first->Copy(lRec);
-				buffer.push_back(first);
-				tmpPage.Append(lRec);
-				int pgCnt = 0;
+				first->Copy(rcdR);
+				pageR.Append(rcdR);
+				vectorR.push_back(first);
+				int rPages = 0;
 
-				while (this->inPipeL->Remove(lRec)) {
-					//getting n-1 pages of records into vectorR
+				rMore = false;
+				while (this->inPipeR->Remove(rcdR)) {
 					Record *copyMe = new Record();
-					copyMe->Copy(lRec);
-					if (!tmpPage.Append(lRec)) {
-						pgCnt += 1;
-						if (pgCnt >= this->nPages - 1) {
-							moreInLeft = true;
+					copyMe->Copy(rcdR);
+					if (!pageR.Append(rcdR)) {
+						rPages += 1;
+						if (rPages >= n_pages - 1) {
+							rMore = true;
 							break;
 						} else {
-							tmpPage.EmptyItOut();
-							tmpPage.Append(lRec);
-							buffer.push_back(copyMe);
+							pageR.EmptyItOut();
+							pageR.Append(rcdR);
+							vectorR.push_back(copyMe);
 						}
 					} else {
-						buffer.push_back(copyMe);
+						vectorR.push_back(copyMe);
 					}
 				}
-
-				tmpDbFile.MoveFirst(); //we should do this in each iteration, iterate all the tuples in Left
-				while (tmpDbFile.GetNext(*rRec)) {
-					for (int i = 0; i < buffer.size(); i++) {
-						if (comp.Compare(buffer.at(i), rRec, this->literal,
-								this->cnf)) {
+				dbFileL.MoveFirst(); //we should do this in each iteration
+				//iterate all the tuples in Left
+				int fileRN = 0;
+				while (dbFileL.GetNext(*rcdL)) {
+					for (vector<Record*>::iterator it = vectorR.begin();
+							it != vectorR.end(); it++) {
+						if (1
+								== cmp.Compare(rcdL, *it, this->literal,
+										this->cnf)) {
 							//applied to the CNF, then join
-							Record *jointRec = new Record();
-							Record *tempRec = new Record();
-							tempRec->Copy(buffer.at(i));
-							jointRec->MergeRecords(tempRec, rRec, leftAttr,
-									rightAttr, attrToKeep, leftAttr + rightAttr,
-									leftAttr);
-							this->outPipe->Insert(jointRec);
+							joinNum++;
+							Record *jr = new Record();
+							Record *rr = new Record();
+							rr->Copy(*it);
+							jr->MergeRecords(rcdL, rr, leftAttr, rightAttr,
+									attrToKeep, leftAttr + rightAttr, leftAttr);
+							this->outPipe->Insert(jr);
 						}
 					}
 				}
 				//clean up the vectorR
-				buffer.clear();
+				CLEANUPVECTOR(vectorR);
 			}
-			tmpDbFile.Close();
+			dbFileL.Close();
 		}
 	}
 	this->outPipe->ShutDown();
