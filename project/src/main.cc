@@ -49,9 +49,10 @@ inline void clear() {
 int main() {
 
 	catalog_path = "catalog";		// full path of the catalog file
-	dbfile_dir = "/Users/abhinavrungta/gitlab/databaseimpl/dbfile/"; // dir where binary heap files should be stored
-	tpch_dir = "/Users/abhinavrungta/gitlab/databaseimpl/db/"; // dir where dbgen tpch files (extension *.tbl) can be found
-
+	//dbfile_dir = "/Users/abhinavrungta/gitlab/databaseimpl/dbfile/"; // dir where binary heap files should be stored
+	//tpch_dir = "/Users/abhinavrungta/gitlab/databaseimpl/db/"; // dir where dbgen tpch files (extension *.tbl) can be found
+	dbfile_dir = getenv("dbfile"); // dir where binary heap files should be stored
+	tpch_dir = getenv("tpch"); // dir where dbgen tpch files (extension *.tbl) can be found
 	QueryPlan *queryPlan = new QueryPlan();
 	while (true) {
 		if (yyparse() != 0) {
