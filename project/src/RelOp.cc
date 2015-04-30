@@ -115,72 +115,77 @@ void *Join::Helper(void *arg) {
 }
 
 void Join::Apply() {
-	OrderMaker orderL;
-	OrderMaker orderR;
-	this->cnf->GetSortOrders(orderL, orderR);
+	OrderMaker *leftOrder = new OrderMaker();
+	OrderMaker *rightOrder = new OrderMaker();
+	this->cnf->GetSortOrders(*leftOrder, *rightOrder);
 
 	//----------sort-merge Join-----------
-	if (orderL.numAtts && orderR.numAtts && orderL.numAtts == orderR.numAtts) {
+	if (leftOrder->numAtts && rightOrder->numAtts
+			&& leftOrder->numAtts == rightOrder->numAtts) {
 		//means we can do a sort-merge join
-		Pipe pipeL(PIPE_SIZE), pipeR(PIPE_SIZE);
-		BigQ *bigQL = new BigQ(*(this->inPipeL), pipeL, orderL, RUNLEN);
-		BigQ *bigQR = new BigQ(*(this->inPipeR), pipeR, orderR, RUNLEN);
+		Pipe *leftSortPipe = new Pipe(PIPE_SIZE);
+		Pipe *rightSortPipe = new Pipe(PIPE_SIZE);
+		BigQ *bigQL = new BigQ(*(this->inPipeL), *leftSortPipe, *leftOrder,
+		RUNLEN);
+		BigQ *bigQR = new BigQ(*(this->inPipeR), *rightSortPipe, *rightOrder,
+		RUNLEN);
 
 		//next get tuples out in order from pipeL and pipeR, and put the equal tuples into two vectors
 		//then cross-multiply them
 		vector<Record *> vectorL;
 		vector<Record *> vectorR;
-		Record *rcdL = new Record();
-		Record *rcdR = new Record();
+		Record *lRec = new Record();
+		Record *rRec = new Record();
 		ComparisonEngine cmp;
 
-		if (pipeL.Remove(rcdL) && pipeR.Remove(rcdR)) {
-			int leftAttr = ((int *) rcdL->bits)[1] / sizeof(int) - 1;
-			int rightAttr = ((int *) rcdR->bits)[1] / sizeof(int) - 1;
+		if (leftSortPipe->Remove(lRec) && rightSortPipe->Remove(rRec)) {
+			int leftAttr = lRec->GetNumAtts();
+			int rightAttr = rRec->GetNumAtts();
 			int totalAttr = leftAttr + rightAttr;
 			int attrToKeep[totalAttr];
 			for (int i = 0; i < leftAttr; i++)
 				attrToKeep[i] = i;
 			for (int i = 0; i < rightAttr; i++)
 				attrToKeep[i + leftAttr] = i;
+
 			int joinNum;
 
-			bool leftOK = true, rightOK = true; //means that rcdL and rcdR are both ok
+			bool moreInLeft = true, moreInRight = true; //means that rcdL and rcdR are both ok
 			int num = 0;
-			while (leftOK && rightOK) {
-				leftOK = false;
-				rightOK = false;
-				int cmpRst = cmp.Compare(rcdL, &orderL, rcdR, &orderR);
+			while (moreInLeft && moreInRight) {
+				moreInLeft = false;
+				moreInRight = false;
+				int cmpRst = cmp.Compare(lRec, leftOrder, rRec, rightOrder);
 				switch (cmpRst) {
 				case 0: // L == R
 				{
 					num++;
 					Record *rcd1 = new Record();
-					rcd1->Consume(rcdL);
+					rcd1->Consume(lRec);
 					Record *rcd2 = new Record();
-					rcd2->Consume(rcdR);
+					rcd2->Consume(rRec);
 					vectorL.push_back(rcd1);
 					vectorR.push_back(rcd2);
 
 					//get rcds from pipeL that equal to rcdL
-					while (pipeL.Remove(rcdL)) {
-						if (0 == cmp.Compare(rcdL, rcd1, &orderL)) { // equal
+					while (leftSortPipe->Remove(lRec)) {
+						if (0 == cmp.Compare(lRec, rcd1, leftOrder)) { // equal
 							Record *cLMe = new Record();
-							cLMe->Consume(rcdL);
+							cLMe->Consume(lRec);
 							vectorL.push_back(cLMe);
 						} else {
-							leftOK = true;
+							moreInLeft = true;
 							break;
 						}
 					}
 					//get rcds from PipeR that equal to rcdR
-					while (pipeR.Remove(rcdR)) {
-						if (0 == cmp.Compare(rcdR, rcd2, &orderR)) { // equal
+					while (rightSortPipe->Remove(rRec)) {
+						if (0 == cmp.Compare(rRec, rcd2, rightOrder)) { // equal
 							Record *cRMe = new Record();
-							cRMe->Consume(rcdR);
+							cRMe->Consume(rRec);
 							vectorR.push_back(cRMe);
 						} else {
-							rightOK = true;
+							moreInRight = true;
 							break;
 						}
 					}
@@ -192,9 +197,8 @@ void Join::Apply() {
 						for (vector<Record *>::iterator itR = vectorR.begin();
 								itR != vectorR.end(); itR++) {
 							//join and output
-							if (1
-									== cmp.Compare(lr, *itR, this->literal,
-											this->cnf)) {
+							if (cmp.Compare(lr, *itR, this->literal, this->cnf)
+									== 1) {
 								joinNum++;
 								rr->Copy(*itR);
 								jr->MergeRecords(lr, rr, leftAttr, rightAttr,
@@ -210,14 +214,14 @@ void Join::Apply() {
 					break;
 				}
 				case 1: // L > R
-					leftOK = true;
-					if (pipeR.Remove(rcdR))
-						rightOK = true;
+					moreInLeft = true;
+					if (rightSortPipe->Remove(rRec))
+						moreInRight = true;
 					break;
 				case -1: // L < R
-					rightOK = true;
-					if (pipeL.Remove(rcdL))
-						leftOK = true;
+					moreInRight = true;
+					if (leftSortPipe->Remove(lRec))
+						moreInLeft = true;
 					break;
 				}
 			}
