@@ -1,4 +1,6 @@
 #include "QueryPlan.h"
+#include "fstream"
+#include "string.h"
 
 QueryPlan::QueryPlan() {
 	this->pipeNum = 0;
@@ -571,6 +573,25 @@ int QueryPlan::ExecuteCreateTable(CreateTable *createTable) {
 	DBFile *db = new DBFile;
 	char dbpath[100];
 	sprintf(dbpath, "%s%s.bin", dbfile_dir, createTable->tableName);
+
+	int numAtts = 0;
+	ofstream ofcat(catalog_path, ios_base::app);
+	ofcat << "BEGIN\n" << createTable->tableName << '\n'
+			<< createTable->tableName << ".tbl" << endl;
+	const char* myTypes[3] = { "Int", "Double", "String" };
+	for (AttrList* att = createTable->attrList; att; att = att->next, ++numAtts)
+		ofcat << att->attr->attrName << ' ' << myTypes[att->attr->type] << endl;
+	ofcat << "END" << endl;
+
+	Attribute* atts = new Attribute[numAtts];
+	Type types[3] = { Int, Double, String };
+	numAtts = 0;
+	for (AttrList* att = createTable->attrList; att;
+			att = att->next, numAtts++) {
+		atts[numAtts].name = strdup(att->attr->attrName);
+		atts[numAtts].myType = types[att->attr->type];
+	}
+
 	struct SortInfo {
 		OrderMaker *myOrder;
 		int runLength;
