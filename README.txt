@@ -19,8 +19,3 @@ FOLDER STRUCTURE -
 DEPENDENCIES
 1. apt-get install bison
 2. apt-get install flex
-
-
-Group Members:
-Abhinav Rungta  69517289
-Vibhav Bhave 	7171-1662
